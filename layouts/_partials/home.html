@@ -1,7 +1,7 @@
 {{ $lang := .Language.Lang }}{{ $nav := hugo.Data.docs_navigation }}{{ $labels := index $nav.labels $lang | default (index $nav.labels "en") }}{{ $r := index $nav.routes $lang }}
 <!doctype html><html lang="{{ $lang }}"><head>{{ partial "meta.html" . }}
-<link rel="stylesheet" href="/assets/css/guides.css"><link rel="stylesheet" href="/pagefind/pagefind-ui.css">
-<script>document.documentElement.classList.add('home-js')</script><script defer src="/pagefind/pagefind-ui.js"></script><script defer src="/assets/js/docs.js"></script></head>
+<link rel="stylesheet" href="/assets/css/guides.css?v={{ readFile "static/assets/css/guides.css" | md5 | truncate 10 "" }}"><link rel="stylesheet" href="/pagefind/pagefind-ui.css">
+<script defer src="/pagefind/pagefind-ui.js"></script><script defer src="/assets/js/docs.js?v={{ readFile "static/assets/js/docs.js" | md5 | truncate 10 "" }}"></script></head>
 <body class="docs-page home-page" data-docs-lang="{{ $lang }}"><a class="skip-link" href="#main-content">{{ $labels.skip }}</a>
 {{ partial "header.html" (dict "page" . "labels" $labels "routes" $r "current" "home") }}
 <main id="main-content" tabindex="-1">

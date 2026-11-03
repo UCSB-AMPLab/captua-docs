@@ -5,7 +5,7 @@
  const updateHeader=()=>document.documentElement.style.setProperty('--header-height',header.getBoundingClientRect().height+'px');
  new ResizeObserver(updateHeader).observe(header);updateHeader();
  const hero=document.querySelector('.home-hero');
- if(hero&&document.documentElement.classList.contains('home-js')){const sync=()=>header.classList.toggle('is-scrolled',hero.getBoundingClientRect().bottom<=header.getBoundingClientRect().height);addEventListener('scroll',sync,{passive:true});addEventListener('resize',sync);sync()}
+ if(hero){document.documentElement.classList.add('home-js');const sync=()=>header.classList.toggle('is-scrolled',hero.getBoundingClientRect().bottom<=header.getBoundingClientRect().height);addEventListener('scroll',sync,{passive:true});addEventListener('resize',sync);sync()}
  const lang=document.documentElement.lang;
  try{localStorage.setItem('captua-lang',lang)}catch{}
  const picker=document.querySelector('[data-section-picker]');
