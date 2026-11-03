@@ -100,9 +100,6 @@
             "title": "Hardware setup",
             "items": [
               {
-                "page": "/docs/deployment/cm4-dual-camera"
-              },
-              {
                 "page": "/docs/deployment/pi5-imx519"
               }
             ]

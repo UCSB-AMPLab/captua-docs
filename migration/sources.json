@@ -27,12 +27,6 @@
       "section": "cameras"
     },
     {
-      "source": "docs/developers/device_setup_CM4.qmd",
-      "url": "/docs/deployment/cm4-dual-camera/",
-      "translationKey": "docs-deployment-cm4-dual-camera",
-      "section": "deployment"
-    },
-    {
       "source": "docs/developers/device_setup_pi5_imx519.qmd",
       "url": "/docs/deployment/pi5-imx519/",
       "translationKey": "docs-deployment-pi5-imx519",
@@ -49,6 +43,12 @@
       "url": "/docs/deployment/updating-a-unit/",
       "translationKey": "docs-deployment-updating-a-unit",
       "section": "deployment"
+    }
+  ],
+  "not_moved": [
+    {
+      "source": "docs/developers/device_setup_CM4.qmd",
+      "reason": "Captua units use standard Raspberry Pi 5 boards; the CM4 build is not used."
     }
   ]
 }
