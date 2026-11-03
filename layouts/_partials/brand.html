@@ -1,2 +1,2 @@
-{{- /* The logo files are single-colour SVGs; CSS paints them through a mask so they follow the colour scheme. */ -}}
-{{- if eq . "mark" -}}<span class="brand-mark" aria-hidden="true"></span>{{- else -}}<span class="brand-logo brand-logo--{{ . }}" role="img" aria-label="Captua"></span>{{- end -}}
+{{- /* The logo files are single-colour SVGs in Captua cream (#EDE8DC), drawn on the dark header and hero. */ -}}
+{{- if eq . "mark" -}}<img class="brand-mark" src="/images/captua-logo.svg" alt="Captua" width="348" height="105">{{- else -}}<img class="brand-logo" src="/images/captua-logo-descrp-light-{{ . }}.svg" alt="Captua" width="349" height="107">{{- end -}}
