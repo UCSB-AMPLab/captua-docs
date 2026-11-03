@@ -1,0 +1,54 @@
+{
+  "source_repository": "UCSB-AMPLab/digitization-toolkit-software",
+  "source_commit": "34b4789441fa2bbe1f141aaf931017563df764e5",
+  "pages": [
+    {
+      "source": "docs/users/external-storage.qmd",
+      "url": "/docs/operators/external-storage/",
+      "translationKey": "docs-operators-external-storage",
+      "section": "operators"
+    },
+    {
+      "source": "docs/users/operator-card-rionegro.qmd",
+      "url": "/docs/operators/rionegro-card/",
+      "translationKey": "docs-operators-rionegro-card",
+      "section": "operators"
+    },
+    {
+      "source": "docs/users/setting-up-gphoto2-cams.qmd",
+      "url": "/docs/cameras/gphoto2/",
+      "translationKey": "docs-cameras-gphoto2",
+      "section": "cameras"
+    },
+    {
+      "source": "docs/users/setting-up-chdk-cams.qmd",
+      "url": "/docs/cameras/chdk/",
+      "translationKey": "docs-cameras-chdk",
+      "section": "cameras"
+    },
+    {
+      "source": "docs/developers/device_setup_CM4.qmd",
+      "url": "/docs/deployment/cm4-dual-camera/",
+      "translationKey": "docs-deployment-cm4-dual-camera",
+      "section": "deployment"
+    },
+    {
+      "source": "docs/developers/device_setup_pi5_imx519.qmd",
+      "url": "/docs/deployment/pi5-imx519/",
+      "translationKey": "docs-deployment-pi5-imx519",
+      "section": "deployment"
+    },
+    {
+      "source": "docs/developers/sd_card_distribution.qmd",
+      "url": "/docs/deployment/sd-card-distribution/",
+      "translationKey": "docs-deployment-sd-card-distribution",
+      "section": "deployment"
+    },
+    {
+      "source": "docs/developers/updating_a_unit.qmd",
+      "url": "/docs/deployment/updating-a-unit/",
+      "translationKey": "docs-deployment-updating-a-unit",
+      "section": "deployment"
+    }
+  ]
+}
