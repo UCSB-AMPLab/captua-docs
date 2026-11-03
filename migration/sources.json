@@ -10,9 +10,10 @@
     },
     {
       "source": "docs/users/operator-card-rionegro.qmd",
-      "url": "/docs/operators/rionegro-card/",
-      "translationKey": "docs-operators-rionegro-card",
-      "section": "operators"
+      "url": "/docs/operators/card/",
+      "translationKey": "docs-operators-card",
+      "section": "operators",
+      "note": "The English card is new and deployment-agnostic; the Rionegro Spanish card is the basis for its Spanish counterpart under /guia/."
     },
     {
       "source": "docs/users/setting-up-gphoto2-cams.qmd",
