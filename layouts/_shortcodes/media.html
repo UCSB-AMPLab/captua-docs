@@ -1,0 +1,5 @@
+{{- $nav := hugo.Data.docs_navigation -}}{{- $labels := index $nav.labels .Page.Language.Lang | default (index $nav.labels "en") -}}
+{{- $id := .Get "id" -}}{{- $item := index hugo.Data.docs_media.items $id -}}{{- if not $item }}{{ errorf "media: no entry %q in data/docs_media.json (%s)" $id .Page.File.Path }}{{ end -}}
+{{- with index $item .Page.Language.Lang -}}
+<figure class="docs-media"{{ with .display_width }} style="max-width:{{ . }}px"{{ end }}><a class="docs-media-image" href="{{ .image }}" target="_blank" rel="noopener" aria-label="{{ $labels.open_image }}"><img src="{{ .image }}" alt="{{ .alt }}"{{ with .width }} width="{{ . }}"{{ end }}{{ with .height }} height="{{ . }}"{{ end }} loading="lazy" decoding="async"></a>{{ with .caption }}<figcaption><p>{{ . }}</p></figcaption>{{ end }}</figure>
+{{- end -}}

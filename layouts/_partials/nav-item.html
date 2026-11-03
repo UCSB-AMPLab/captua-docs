@@ -1,0 +1,1 @@
+{{ $it := .item }}{{ if $it.external }}<a href="{{ $it.url }}">{{ $it.title }} ↗</a>{{ else }}{{ with site.GetPage $it.page }}<a href="{{ .RelPermalink }}"{{ if eq .RelPermalink $.current }} aria-current="page"{{ end }}>{{ .LinkTitle }}</a>{{ else }}{{ errorf "docs_navigation: no page at %q" $it.page }}{{ end }}{{ end }}

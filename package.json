@@ -1,0 +1,22 @@
+{
+  "name": "captua-docs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/serve.mjs",
+    "test": "node scripts/verify.mjs",
+    "dev": "hugo server --config hugo.json,hugo.preview.json --bind 127.0.0.1 --port 4006 --disableFastRender",
+    "build:preview": "node scripts/build.mjs --preview"
+  },
+  "devDependencies": {
+    "hugo-extended": "0.160.1",
+    "pagefind": "1.5.2"
+  },
+  "allowScripts": {
+    "hugo-extended@0.160.1": true
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

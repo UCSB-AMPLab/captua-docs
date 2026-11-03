@@ -1,0 +1,2 @@
+{{- /* The logo files are single-colour SVGs; CSS paints them through a mask so they follow the colour scheme. */ -}}
+{{- if eq . "mark" -}}<span class="brand-mark" aria-hidden="true"></span>{{- else -}}<span class="brand-logo brand-logo--{{ . }}" role="img" aria-label="Captua"></span>{{- end -}}

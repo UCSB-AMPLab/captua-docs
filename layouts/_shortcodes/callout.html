@@ -1,0 +1,10 @@
+{{- $nav := hugo.Data.docs_navigation -}}{{- $labels := index $nav.labels .Page.Language.Lang | default (index $nav.labels "en") -}}
+{{- $type := .Get "type" | default "note" -}}{{- $simple := eq (.Get "appearance") "simple" -}}{{- $title := .Get "title" -}}
+{{- if and (not $title) (or (not $simple) (eq (.Get "collapse") "true")) }}{{ $title = index $labels.callout $type }}{{ end -}}
+{{- $class := printf "callout callout-%s%s" $type (cond $simple " callout-simple" "") -}}
+{{- $body := .Inner | .Page.RenderString (dict "display" "block") -}}
+{{- if eq (.Get "collapse") "true" -}}
+<details class="{{ $class }}"><summary class="callout-title">{{ $title | .Page.RenderString }}</summary><div class="callout-body">{{ $body }}</div></details>
+{{- else -}}
+<div class="{{ $class }}" role="note">{{ with $title }}<p class="callout-title">{{ . | $.Page.RenderString }}</p>{{ end }}<div class="callout-body">{{ $body }}</div></div>
+{{- end -}}

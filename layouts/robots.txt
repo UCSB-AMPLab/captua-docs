@@ -1,0 +1,5 @@
+User-agent: *
+{{ if .Site.Params.docs_preview }}Disallow: /
+{{ else }}Allow: /
+Sitemap: {{ "sitemap.xml" | absURL }}
+{{ end }}

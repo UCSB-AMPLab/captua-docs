@@ -1,0 +1,8 @@
+node_modules/
+public/
+resources/
+.hugo_build.lock
+.DS_Store
+*.log
+reports/
+.build-result.json

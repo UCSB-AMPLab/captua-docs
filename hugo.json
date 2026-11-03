@@ -1,0 +1,48 @@
+{
+  "baseURL": "https://captua.org/",
+  "title": "Captua",
+  "defaultContentLanguage": "en",
+  "defaultContentLanguageInSubdir": false,
+  "disableKinds": [
+    "taxonomy",
+    "term",
+    "RSS"
+  ],
+  "languages": {
+    "en": {
+      "contentDir": "content/en",
+      "weight": 1,
+      "languageCode": "en",
+      "languageName": "English"
+    },
+    "es": {
+      "contentDir": "content/es",
+      "weight": 2,
+      "languageCode": "es",
+      "languageName": "Español",
+      "disabled": true
+    }
+  },
+  "markup": {
+    "goldmark": {
+      "renderer": {
+        "unsafe": true
+      },
+      "parser": {
+        "attribute": {
+          "title": true,
+          "block": true
+        }
+      }
+    },
+    "highlight": {
+      "noClasses": false
+    }
+  },
+  "params": {
+    "docs_preview": false,
+    "api_reference": "https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md",
+    "repository": "https://github.com/UCSB-AMPLab/captua-docs"
+  },
+  "enableRobotsTXT": true
+}
