@@ -33,12 +33,14 @@ If you are an administrator, you also have "Shut down" and "Restart" buttons in 
 - **Ctrl+Alt+F2** → text screen (recovery)
 - **Ctrl+Alt+F1** → the application
 
-## Cameras: focusing at the start of the day {#cameras-focusing-at-the-start-of-the-day}
+Use the left Ctrl and Alt keys; the right ones don't work for these shortcuts.
+
+## Canon DSLR cameras: focusing at the start of the day {#canon-dslr-cameras-focusing-at-the-start-of-the-day}
 
 1. Set the lens switch to **AF** on both cameras and take the first capture. Both cameras focus on their own.
 2. Move the switch to **MF**, also **on both cameras**. Focus then holds for the rest of the day, because the distance between camera and document doesn't change.
 
-If you leave the switch on AF, each capture takes about 12 seconds longer and can hang. If that happens, the capture screen may show a warning in the "Camera Controls" panel. Before you start digitizing, look at each camera's lens and check that the switch is on **MF**. The flash stays off automatically, so you don't need to touch it.
+If you leave the switch on AF, each capture takes about 12 seconds longer and can hang. If that happens, the capture screen may show a warning in the "Camera Controls" panel. Before you start digitizing, look at each camera's lens and check that the switch is on **MF**. Captua tries to turn the flash off. Check that the flash is closed before you start.
 
 ## Sending a finished volume for review {#sending-a-finished-volume-for-review}
 
@@ -56,7 +58,7 @@ From then on the records are under review and you can't move them to another vol
 
 ## If a camera stops responding {#if-a-camera-stops-responding}
 
-1. Check that the lens switch is on **MF** (see above).
+1. On Canon DSLRs, check that the lens switch is on **MF** (see above).
 2. Switch that camera off and on again, then click "Reconnect cameras".
 3. If nothing changes, restart the scanner from the user menu (see above).
 
