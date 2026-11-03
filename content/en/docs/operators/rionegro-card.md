@@ -67,7 +67,3 @@ Desde ese momento los registros quedan en revisión y no puedes moverlos a otro 
 Presiona **Ctrl+Alt+F2**, escribe `sudo systemctl restart dtk` y presiona Enter. **Después de presionar Enter no aparece ningún mensaje: es normal.** Espera unos 30 segundos y vuelve a la aplicación con **Ctrl+Alt+F1**.
 
 Si la aplicación sigue sin responder, apaga el equipo con el botón de encendido (ver arriba) y vuelve a encenderlo.
-
-## Contacto {#contacto}
-
-Escribe a **coordinacion@neogranadina.org**.
