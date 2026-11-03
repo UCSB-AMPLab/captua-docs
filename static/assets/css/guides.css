@@ -161,3 +161,5 @@ details.callout>summary{cursor:pointer;padding-bottom:12px}details.callout[open]
 .home-js .home-page .guide-header.is-scrolled .guide-brand,.home-js .home-page .guide-header.is-scrolled .site-nav{opacity:1;visibility:visible;transition:opacity .25s ease,visibility 0s}
 @media(prefers-reduced-motion:reduce){.home-js .home-page .guide-header,.home-js .home-page .guide-header *{transition:none!important}}
 @media(max-width:720px){.home-js .home-page .guide-header:not(.is-scrolled) .docs-search-form{opacity:0;visibility:hidden}}
+
+.home-hero h1 .brand-logo--stacked{width:auto;height:min(42svh,380px);max-width:92%;margin:0 auto}
