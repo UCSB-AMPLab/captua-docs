@@ -126,7 +126,8 @@ def route_of(file):
 
 
 routes = {route_of(f): p for f, p in pages.items()}
-indexable = {r for r, p in routes.items() if r != '/404.html' and not any('noindex' in v for v in p.robots)}
+# Preview builds are noindex throughout, so only production separates indexable pages from the rest.
+indexable = {r for r, p in routes.items() if r != '/404.html' and (preview or not any('noindex' in v for v in p.robots))}
 
 for file, p in pages.items():
     rel = str(file.relative_to(PUBLIC))
