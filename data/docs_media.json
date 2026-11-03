@@ -63,7 +63,6 @@
     "cm4-cameras-setup": {
       "en": {
         "alt": "Top view of a Raspberry Pi Compute Module 4 IO Board. Two camera connectors, at the top left and the left edge, are circled in yellow with an orange ribbon cable beside each, and the jumpers next to the GPIO header are circled in red.",
-        "caption": "alt",
         "image": "/images/docs/CM4_cameras_setup.jpg",
         "width": 1600,
         "height": 720
