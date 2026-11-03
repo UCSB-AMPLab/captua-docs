@@ -633,7 +633,9 @@ The record names the rollback command in its `rollback-command` line, beginning 
 sudo systemd-run --unit=dtk-rollback --collect \
     /var/lib/dtk/rollback-update.sh --project-root=/home/pi/dtk --yes /var/lib/dtk/backups/pre-update-<YYYYmmdd-HHMMSS>.sql.gz
 journalctl -u dtk-rollback -f
-``` A successful rollback removes the record and the flag. If the rollback refuses because the checkout has modified files, clear them first.
+```
+
+A successful rollback removes the record and the flag. If the rollback refuses because the checkout has modified files, clear them first.
 
 **A flag without a record.** `update.sh` refuses, and `dtk` does not start. Find out which version the code is on and whether the database matches it (the failed run's output, `systemctl status dtk`). When they agree, remove the flag: `sudo rm /etc/dtk/unresolved-deployment`.
 

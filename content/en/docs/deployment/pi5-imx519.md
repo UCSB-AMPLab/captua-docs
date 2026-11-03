@@ -29,8 +29,6 @@ For camera connection we followed the [Arducam Quick Start Guide for Hardware Se
 
 ### Camera Connection {#camera-connection}
 
-{{< media id="arducam-wiki-rpi-imx708-hardware-picture-1" >}}
-
 The actual camera connection looks like this:
 
 {{< media id="imx519-ribbon-connection" >}}

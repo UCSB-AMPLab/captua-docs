@@ -5,8 +5,8 @@
         "alt": "USB connection from the camera side",
         "caption": "USB connection from the camera side",
         "image": "/images/docs/cannon-EOS-RebelT7-usb4cam.JPG",
-        "width": 5184,
-        "height": 3888,
+        "width": 1600,
+        "height": 1200,
         "display_width": 400
       }
     },
@@ -15,8 +15,8 @@
         "alt": "USB connection to the Raspberry Pi - dual camera setup in ports USB 3.0",
         "caption": "USB connection to the Raspberry Pi - dual camera setup in ports USB 3.0",
         "image": "/images/docs/cannon_EOS-RebelT7-usb2RPi.JPG",
-        "width": 5184,
-        "height": 3888,
+        "width": 1600,
+        "height": 1200,
         "display_width": 400
       }
     },
@@ -25,8 +25,8 @@
         "alt": "Canon EF-S 18-55mm lens attached to a DSLR camera body",
         "caption": "Canon EF-S 18-55mm lens attached to a DSLR camera body",
         "image": "/images/docs/cannon-EOS-RebelT7-lensMF.jpg",
-        "width": 1836,
-        "height": 4080,
+        "width": 720,
+        "height": 1600,
         "display_width": 400
       }
     },
@@ -35,8 +35,8 @@
         "alt": "Canon EOS camera mode dial in manual mode",
         "caption": "Canon EOS camera mode dial in manual mode",
         "image": "/images/docs/cannon-EOS-RebelT7-Mode.jpg",
-        "width": 1836,
-        "height": 4080,
+        "width": 720,
+        "height": 1600,
         "display_width": 400
       }
     },
@@ -45,8 +45,8 @@
         "alt": "Canon EOS camera built-in flash in closed position",
         "caption": "Canon EOS camera built-in flash in closed position",
         "image": "/images/docs/cannon-EOS-RebelT7-flash.jpg",
-        "width": 4080,
-        "height": 1836,
+        "width": 1600,
+        "height": 720,
         "display_width": 400
       }
     },
@@ -55,25 +55,18 @@
         "alt": "Canon EOS camera menu screen auto power off",
         "caption": "Canon EOS camera menu screen auto power off",
         "image": "/images/docs/cannon-EOS-RebelT7-config-menu.jpg",
-        "width": 2702,
-        "height": 1672,
+        "width": 1600,
+        "height": 990,
         "display_width": 400
       }
     },
     "cm4-cameras-setup": {
       "en": {
-        "alt": "alt",
+        "alt": "Top view of a Raspberry Pi Compute Module 4 IO Board. Two camera connectors, at the top left and the left edge, are circled in yellow with an orange ribbon cable beside each, and the jumpers next to the GPIO header are circled in red.",
         "caption": "alt",
         "image": "/images/docs/CM4_cameras_setup.jpg",
-        "width": 4080,
-        "height": 1836
-      }
-    },
-    "arducam-wiki-rpi-imx708-hardware-picture-1": {
-      "en": {
-        "alt": "Camera Connection",
-        "caption": "Camera Connection",
-        "image": "https://docs.arducam.com/Raspberry-Pi-Camera/Low-Light/picture/arducam_wiki_rpi_imx708_hardware_picture_1.png"
+        "width": 1600,
+        "height": 720
       }
     },
     "imx519-ribbon-connection": {
@@ -81,8 +74,8 @@
         "alt": "Camera Connection Actual",
         "caption": "Camera Connection Actual",
         "image": "/images/docs/imx519_ribbon_connection.JPG",
-        "width": 5184,
-        "height": 3888
+        "width": 1600,
+        "height": 1200
       }
     },
     "rpi5-camera-ribbon-connection": {
@@ -90,8 +83,8 @@
         "alt": "Dual Camera Connection",
         "caption": "Dual Camera Connection",
         "image": "/images/docs/rpi5_camera_ribbon_connection.JPG",
-        "width": 5184,
-        "height": 3888
+        "width": 1600,
+        "height": 1200
       }
     },
     "rpi5-imx519-b0371-setup": {
@@ -99,8 +92,8 @@
         "alt": "Final Assembly",
         "caption": "Final Assembly",
         "image": "/images/docs/rpi5_imx519_B0371_setup.JPG",
-        "width": 5184,
-        "height": 3888
+        "width": 1600,
+        "height": 1200
       }
     }
   }
