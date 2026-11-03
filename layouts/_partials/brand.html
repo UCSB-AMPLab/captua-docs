@@ -1,17 +1,19 @@
 {{- /* The Captua lockup: the seedling beside the outlined wordmark, spaced as in the
-designer's horizontal lockup (viewBox 460 x 160; seedling 130 x 130 at y 15;
+designer's horizontal lockup (viewBox 460 x 160; seedling 130 x 130;
 wordmark 300 wide at x 160, y 34). The artwork in /images/brand/ is drawn in
 currentColor, so the ink comes from --captua-logo-ink in guides.css.
 "mark" is the header size (thick seedling); "eng" and "esp" are the hero, with
 the locale's descriptor under the wordmark and the thin seedling, which the hero
-swaps for the thick one on narrow screens. */ -}}
+swaps for the thick one on narrow screens. The seedling is raised from the designer's y 15 to y 5.11 so that the
+middle of its ink (lockup y 70) sits on the middle of the wordmark's x-height
+(baseline to x-height top, ignoring the T and the p descender). */ -}}
 {{- $hero := ne . "mark" -}}
-<svg class="{{ if $hero }}brand-logo{{ else }}brand-mark{{ end }}" viewBox="0 15 460 130" role="img" aria-label="Captua">
+<svg class="{{ if $hero }}brand-logo{{ else }}brand-mark{{ end }}" viewBox="0 6 460 128" role="img" aria-label="Captua">
 {{- if $hero -}}
-<use class="brand-seedling--thin" href="/images/brand/captua-seedling-thin.svg#seedling" x="0" y="15.0788834951" width="130" height="130"/>
-<use class="brand-seedling--thick" href="/images/brand/captua-seedling-thick.svg#seedling" x="0" y="15.0788834951" width="130" height="130"/>
+<use class="brand-seedling--thin" href="/images/brand/captua-seedling-thin.svg#seedling" x="0" y="5.11" width="130" height="130"/>
+<use class="brand-seedling--thick" href="/images/brand/captua-seedling-thick.svg#seedling" x="0" y="5.11" width="130" height="130"/>
 {{- else -}}
-<use href="/images/brand/captua-seedling-thick.svg#seedling" x="0" y="15.0788834951" width="130" height="130"/>
+<use href="/images/brand/captua-seedling-thick.svg#seedling" x="0" y="5.11" width="130" height="130"/>
 {{- end -}}
 <g transform="translate(160 34.2413793103) scale(0.862068965517)"><use href="/images/brand/captua-wordmark.svg#wordmark" width="348" height="105"/>
 {{- if $hero }}<use href="/images/brand/captua-descriptor-{{ cond (eq . "esp") "es" "en" }}.svg#descriptor" width="348" height="107"/>{{ end -}}
