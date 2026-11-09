@@ -183,7 +183,7 @@ rpicam-vid --camera 1 -t 10000 -o cam1.h264
   vcgencmd get_throttled
   ```
 
-  `0x0` = healthy. Non-zero means undervoltage; use official PSU.
+  A value of `0x0` means the command has recorded none of the conditions it monitors. A non-zero value can indicate undervoltage, temperature limiting, or reduced clock frequency, either current or past. Check the result’s bits in the [Raspberry Pi documentation](https://www.raspberrypi.com/documentation/computers/os.html#get_throttled) to identify the cause. If it indicates undervoltage, use the official power supply.
 
 * **Enable debug logs** (if `dtdebug=1` is set):
 

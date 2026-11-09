@@ -127,7 +127,7 @@ def route_of(file):
 
 routes = {route_of(f): p for f, p in pages.items()}
 # Preview builds are noindex throughout, so only production separates indexable pages from the rest.
-indexable = {r for r, p in routes.items() if r != '/404.html' and (preview or not any('noindex' in v for v in p.robots))}
+indexable = {r for r, p in routes.items() if not r.endswith('/404.html') and (preview or not any('noindex' in v for v in p.robots))}
 
 for file, p in pages.items():
     rel = str(file.relative_to(PUBLIC))
@@ -138,8 +138,8 @@ for file, p in pages.items():
     check(all(n == 1 for n in p.ids.values()), 'Duplicate IDs ' + rel + ' ' + str([k for k, n in p.ids.items() if n > 1]))
     check(re.search(r'\w', p.body_text()) is not None, 'Empty page (no body text besides headings and navigation) ' + rel)
     # The 404 page is the one page that legitimately stays out of the index.
-    if not preview and rel != '404.html': check(not any('noindex' in v for v in p.robots), 'Production page carries noindex ' + rel)
-    if rel != '404.html':
+    if not preview and file.name != '404.html': check(not any('noindex' in v for v in p.robots), 'Production page carries noindex ' + rel)
+    if file.name != '404.html':
         check(p.canon == [base + route], f'Wrong canonical {rel}: {p.canon}')
         if preview: check(any('noindex' in v for v in p.robots), 'Preview page is indexable ' + rel)
         # hreflang: a self-reference, every alternate built, and every pair reciprocal.
@@ -211,6 +211,9 @@ try:
     entry = json.loads((PUBLIC / 'pagefind/pagefind-entry.json').read_text())
     langs = entry.get('languages') or {}
     check(bool(langs), 'pagefind-entry.json lists no languages')
+    configured = json.loads((ROOT / 'hugo.json').read_text())['languages']
+    expected_languages = {lang for lang, settings in configured.items() if not settings.get('disabled', False)}
+    check(set(langs) == expected_languages, f'Pagefind languages {set(langs)} do not match enabled languages {expected_languages}')
     for lang, info in langs.items():
         check((PUBLIC / f"pagefind/pagefind.{info.get('hash')}.pf_meta").exists(), f'Pagefind metadata file missing for {lang}')
         for part, ext in (('index', 'pf_index'), ('fragment', 'pf_fragment')):
@@ -221,7 +224,31 @@ except (OSError, ValueError, AttributeError) as e:
 check((PUBLIC / 'sitemap.xml').exists(), 'Sitemap missing')
 try:
     ns = {'s': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
-    locs = [e.text.strip() for e in ET.parse(PUBLIC / 'sitemap.xml').getroot().findall('s:url/s:loc', ns) if e.text]
+    locs = []
+    remaining = [PUBLIC / 'sitemap.xml']
+    visited = set()
+    while remaining:
+        sitemap = remaining.pop().resolve()
+        check(sitemap not in visited, f'Sitemap index repeats or cycles through {sitemap.name}')
+        if sitemap in visited:
+            continue
+        visited.add(sitemap)
+        tree = ET.parse(sitemap).getroot()
+        if tree.tag == '{' + ns['s'] + '}sitemapindex':
+            children = [e.text.strip() for e in tree.findall('s:sitemap/s:loc', ns) if e.text]
+            check(bool(children), f'Empty sitemap index: {sitemap.name}')
+            for loc in children:
+                path = own_path(loc)
+                valid = loc.startswith(base + '/') and path is not None
+                check(valid, f'Sitemap index points outside this build: {loc}')
+                if valid:
+                    target = to_file(path)
+                    check(target.exists(), f'Sitemap index points to a missing file: {loc}')
+                    if target.exists():
+                        remaining.append(target)
+        else:
+            check(tree.tag == '{' + ns['s'] + '}urlset', f'Unexpected sitemap root: {tree.tag}')
+            locs.extend(e.text.strip() for e in tree.findall('s:url/s:loc', ns) if e.text)
     check(bool(locs), 'Sitemap lists no URLs')
     listed = set()
     for loc in locs:
@@ -229,8 +256,9 @@ try:
         check(loc.startswith(base + '/') and path in routes, f'Sitemap URL does not resolve to a built page: {loc}')
         listed.add(path)
     for r in sorted(indexable - listed): check(False, f'Page missing from sitemap: {r}')
-    for r in sorted(listed & {'/404.html'}): check(False, 'Sitemap lists the 404 page')
-    for r in sorted(listed - indexable - {'/404.html'}): check(r not in routes, f'Sitemap lists a noindex page: {r}')
+    not_found_routes = {r for r in routes if r.endswith('/404.html')}
+    for r in sorted(listed & not_found_routes): check(False, 'Sitemap lists a 404 page: ' + r)
+    for r in sorted(listed - indexable - not_found_routes): check(r not in routes, f'Sitemap lists a noindex page: {r}')
 except (OSError, ET.ParseError) as e:
     check(False, f'sitemap.xml unreadable: {e}')
 # Migration manifest: every expected page is built and is not a draft.

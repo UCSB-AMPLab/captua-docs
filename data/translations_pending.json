@@ -1,17 +1,4 @@
 {
   "_comment": "English translationKeys whose Spanish page under content/es/ does not exist yet. npm test fails if an English page has neither a Spanish counterpart nor an entry here, or if an entry here already has a Spanish page. The Spanish step removes each key as it adds the page.",
-  "pending": [
-    "home",
-    "docs",
-    "docs-cameras",
-    "docs-cameras-chdk",
-    "docs-cameras-gphoto2",
-    "docs-deployment",
-    "docs-deployment-pi5-imx519",
-    "docs-deployment-sd-card-distribution",
-    "docs-deployment-updating-a-unit",
-    "docs-operators",
-    "docs-operators-external-storage",
-    "docs-operators-card"
-  ]
+  "pending": []
 }

@@ -22,7 +22,7 @@ If you are an administrator, you also have "Shut down" and "Restart" buttons in 
 
 **If the screen doesn't respond:** press the scanner's power button once. This shuts the scanner down safely. Wait for the screen to go dark before you unplug the power.
 
-**If the scanner stays on:** press **Ctrl+Alt+F2**, type `sudo poweroff` and press Enter. Wait for the screen to go dark.
+**If the scanner stays on:** press **Ctrl+Alt+F2**, type `sudo poweroff`, and press Enter. Wait for the screen to go dark.
 
 {{< callout type="warning" appearance="simple" >}}
 **Never unplug the power while the scanner is on:** you can damage the memory card and lose data.
@@ -64,6 +64,6 @@ From then on the records are under review and you can't move them to another vol
 
 ## If the application freezes {#if-the-application-freezes}
 
-Press **Ctrl+Alt+F2**, type `sudo systemctl restart dtk` and press Enter. **No message appears after you press Enter; this is normal.** Wait about 30 seconds, then go back to the application with **Ctrl+Alt+F1**.
+Press **Ctrl+Alt+F2**, type `sudo systemctl restart dtk`, and press Enter. **No message appears after you press Enter; this is normal.** Wait about 30 seconds, then go back to the application with **Ctrl+Alt+F1**.
 
 If the application still doesn't respond, shut the scanner down with the power button (see above) and switch it on again.

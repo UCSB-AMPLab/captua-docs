@@ -20,7 +20,7 @@
       "weight": 2,
       "languageCode": "es",
       "languageName": "Español",
-      "disabled": true
+      "disabled": false
     }
   },
   "markup": {
@@ -44,5 +44,6 @@
     "api_reference": "https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md",
     "repository": "https://github.com/UCSB-AMPLab/captua-docs"
   },
-  "enableRobotsTXT": true
+  "enableRobotsTXT": true,
+  "disableDefaultSiteRedirect": true
 }

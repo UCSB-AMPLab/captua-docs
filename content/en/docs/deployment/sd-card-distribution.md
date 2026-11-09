@@ -63,23 +63,50 @@ Open `http://captua.local` from another device on the same network, and the unit
 
 ### 4. Image the SD card {#image-the-sd-card}
 
-Once the system is working correctly, shut down the Pi cleanly and image the SD card from another machine:
+Once the system is working correctly, shut down the Pi cleanly and create an image of the SD card from another computer.
 
-**macOS / Linux:**
+In the examples below, replace `/dev/sdX` or `/dev/diskN` with the card's whole device, not a partition. Check the path before continuing.
+
+**Linux**
+
+Identify the card with `lsblk` and unmount any mounted partitions on it. Then create the image:
+
 ```bash
-# Identify the SD card device (e.g. /dev/disk4 or /dev/sdb)
-diskutil list           # macOS
-lsblk                   # Linux
-
-# Create compressed image
-sudo dd if=/dev/sdX bs=4M status=progress | gzip > dtk-$(date +%Y%m%d).img.gz
+lsblk
+sudo dd if=/dev/sdX of=dtk-master.img bs=4M status=progress
 ```
 
-**Windows:** Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) or [Win32DiskImager](https://win32diskimager.org/) to read the card to a `.img` file.
+**macOS**
 
-{{< callout type="tip" title="Shrink before imaging" >}}
-Tools like [PiShrink](https://github.com/Drewsif/PiShrink) can reduce the image size significantly before compression by trimming unused filesystem space.
+Identify the card with `diskutil list`, unmount its volumes, and create the image:
+
+```bash
+diskutil list
+diskutil unmountDisk /dev/diskN
+sudo dd if=/dev/diskN of=dtk-master.img bs=4m
+```
+
+Once `dd` finishes successfully, eject the card:
+
+```bash
+diskutil eject /dev/diskN
+```
+
+**Windows**
+
+Use [Win32 Disk Imager](https://sourceforge.net/projects/win32diskimager/). Select the card's device, enter `dtk-master.img` as the destination file, and click **Read**. Check that you selected the correct card.
+
+{{< callout type="tip" title="Shrink the image before compressing it" >}}
+Tools such as [PiShrink](https://github.com/Drewsif/PiShrink) can shrink the `.img` file by removing unused filesystem space from the image. If you want to do this, work on the uncompressed image.
 {{< /callout >}}
+
+After creating the image and, if applicable, shrinking it, compress it:
+
+```bash
+gzip dtk-master.img
+```
+
+The result is `dtk-master.img.gz`. On Windows, you can use a compression tool that supports gzip.
 
 {{< callout type="note" title="Secrets are per-unit — imaging is safe at any point" >}}
 `SECRET_KEY` and `DATABASE_PASSWORD` are regenerated automatically on each physical unit by `dtk-secrets.service` (installed by `install-service.sh`). It records the Pi's hardware serial in `/var/lib/dtk/secrets-provenance`; when a flashed clone boots on a different Pi, the serial mismatch triggers fresh secrets before the backend starts — including rotating the Postgres password inside the cloned data directory. You do **not** need to scrub secrets from the master image, and test-booting the master before imaging is fine.
@@ -105,14 +132,14 @@ Before imaging a master card, diff `.env` against `.env.example`: it should carr
 
 ## Flashing and Delivering the Image {#flashing-and-delivering-the-image}
 
-Flash the image onto a new SD card:
+On Linux, write the image to a new SD card. Check that `/dev/sdX` is the destination card: **this step erases its contents**. Unmount any mounted partitions on the destination card.
 
 ```bash
-# Linux / macOS
-gzip -dc dtk-YYYYMMDD.img.gz | sudo dd of=/dev/sdX bs=4M status=progress
+gzip -dc dtk-master.img.gz | sudo dd of=/dev/sdX bs=4M status=progress
+sync
 ```
 
-Or use Raspberry Pi Imager → *Use custom image* → select the `.img.gz` file.
+On macOS and Windows, or as an alternative on Linux, open Raspberry Pi Imager, choose the option to use a local image, and select `dtk-master.img.gz`. Select the destination card and write the image.
 
 ---
 
@@ -129,9 +156,10 @@ If the destination uses Wi-Fi (not Ethernet), configure the network credentials 
 
 Raspberry Pi OS Bookworm replaced `dhcpcd` + `wpa_supplicant` with NetworkManager, so dropping a `wpa_supplicant.conf` on the `/boot` partition **no longer works** — Bookworm ignores that file.
 
-- **Preferred:** use Raspberry Pi Imager's *Advanced options* (gear icon, or `Ctrl+Shift+X`) when flashing to preconfigure the Wi-Fi SSID and password before the card is ever booted.
-- **Post-flash:** configure Wi-Fi via NetworkManager, e.g. `sudo nmcli device wifi connect "<SSID>" password "<password>"`, or by dropping a NetworkManager keyfile connection profile under `/etc/NetworkManager/system-connections/`.
-- **Enable SSH in the same *Advanced options* screen** (public-key auth if possible). Headless provisioning is impossible without it: on a fresh Raspberry Pi OS Lite install SSH is off by default, and there is no way in afterwards short of attaching a keyboard and display.
+- **When preparing the master card from Raspberry Pi OS:** set the Wi-Fi SSID and password in Raspberry Pi Imager's customisation options, under **Wi-Fi**. Also enable SSH under **Remote Access**, preferably with public-key authentication.
+- **On an already prepared card:** configure Wi-Fi through NetworkManager, for example with `sudo nmcli device wifi connect "<SSID>" password "<password>"`, or add a NetworkManager keyfile connection profile under `/etc/NetworkManager/system-connections/`.
+
+Do not assume Imager can apply the same customisation options to a cloned local image. Configure the network and SSH on the master card before creating the image. Without SSH, you cannot provision the unit remotely without a display: a fresh Raspberry Pi OS Lite installation has SSH disabled by default, and you will then need a keyboard and display to get in.
 {{< /callout >}}
 
 ---
@@ -140,7 +168,7 @@ Raspberry Pi OS Bookworm replaced `dhcpcd` + `wpa_supplicant` with NetworkManage
 
 **`captua.local` doesn't resolve**
 
-- Windows requires [Bonjour](https://support.apple.com/kb/DL999) (installed automatically with iTunes or iCloud). Windows 10 (1803+) supports mDNS natively.
+- Check that the Pi and your computer are on the same network and that Avahi is active on the Pi.
 - Try pinging: `ping captua.local`
 - As a fallback, find the IP via the router's DHCP client list and open it directly: the app works by IP.
 

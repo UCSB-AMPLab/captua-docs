@@ -1,4 +1,4 @@
-{{ $lang := .Language.Lang }}{{ $nav := hugo.Data.docs_navigation }}{{ $labels := index $nav.labels $lang | default (index $nav.labels "en") }}{{ $r := index $nav.routes $lang }}
+{{ $lang := .Language.Lang }}{{ $nav := hugo.Data.docs_navigation }}{{ $labels := index $nav.labels $lang | default (index $nav.labels "en") }}{{ $r := index $nav.routes $lang }}{{ $copy := index hugo.Data.site_copy $lang }}
 <!doctype html><html lang="{{ $lang }}"><head>{{ partial "meta.html" . }}
 <link rel="stylesheet" href="/assets/css/guides.css?v={{ readFile "static/assets/css/guides.css" | md5 | truncate 10 "" }}"><link rel="stylesheet" href="/pagefind/pagefind-ui.css">
 <script defer src="/pagefind/pagefind-ui.js"></script><script defer src="/assets/js/docs.js?v={{ readFile "static/assets/js/docs.js" | md5 | truncate 10 "" }}"></script></head>
@@ -8,21 +8,30 @@
 <section class="home-hero"><div class="home-hero__content">
 <h1>{{ partial "brand.html" (cond (eq $lang "es") "esp" "eng") }}</h1>
 {{ if gt (len .AllTranslations) 1 }}<nav class="hero__lang-toggle" aria-label="{{ $labels.language }}">{{ range .AllTranslations }}<a lang="{{ .Language.Lang }}" href="{{ .RelPermalink }}"{{ if eq .Language.Lang $lang }} aria-current="page"{{ end }}>{{ .Language.LanguageName }}</a>{{ end }}</nav>{{ end }}
-<p class="hero__tagline">Captua turns a Raspberry Pi computer and two cameras into a station for photographing archival volumes, one pair of pages at a time.</p>
-<div class="hero__cta"><a class="btn btn--primary" href="{{ $r.home }}">{{ $labels.guides }}</a><a class="btn btn--secondary" href="https://github.com/UCSB-AMPLab/digitization-toolkit-software/releases">Releases ↗</a></div>
-<nav class="hero__utility" aria-label="Captua"><a href="https://github.com/UCSB-AMPLab/digitization-toolkit-software">Source code ↗</a><a href="{{ site.Params.api_reference }}">{{ $labels.api_reference }} ↗</a></nav>
+<p class="hero__tagline">{{ $copy.tagline }}</p>
+<div class="hero__cta"><a class="btn btn--primary" href="{{ $r.home }}">{{ $labels.guides }}</a><a class="btn btn--secondary" href="https://github.com/UCSB-AMPLab/digitization-toolkit-software/releases">{{ $copy.releases }} ↗</a></div>
+<nav class="hero__utility" aria-label="Captua"><a href="https://github.com/UCSB-AMPLab/digitization-toolkit-software">{{ $copy.source_code }} ↗</a><a href="{{ site.Params.api_reference }}">{{ $labels.api_reference }} ↗</a></nav>
 </div>
-{{ "<!-- COPY PENDING: scroll cue label -->" | safeHTML }}<a class="hero__scroll" href="#about" aria-label="[copy pending]"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></a></section>
-<section class="home-about" id="about" aria-labelledby="about-heading"><div class="home-about__content"><h2 id="about-heading">{{ partial "pending.html" "about heading" }}</h2>
-<p>Captua turns a Raspberry Pi computer and two cameras into a station for photographing archival volumes, one pair of pages at a time. Through a web interface in Spanish or English, an operator captures each pair, describes the volume, and exports the images. The station works without an internet connection. Captua is open-source software, released under the <a href="https://www.gnu.org/licenses/agpl-3.0.html">GNU Affero General Public License v3</a>.</p>
-<p>Captua is the software of the Digitization Toolkit: hardware, software and documentation with which institutions, collectives and communities with few resources can digitize their archival collections at low cost. The Toolkit builds on a decade of community-based digitization in the Global South, whose DIY book scanners depended on cheap cameras and single-board computers that are now obsolete or unavailable.</p>
+<a class="hero__scroll" href="#about" aria-label="{{ $copy.about_label }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></a></section>
+<section class="home-about" id="about" aria-labelledby="about-heading"><div class="home-about__content"><h2 id="about-heading">{{ $copy.about_heading }}</h2>
+<p>{{ $copy.about_intro | safeHTML }}</p>
+<p>{{ $copy.about_project | safeHTML }}</p>
+<p>{{ $copy.about_workflow }}</p>
+<nav class="workflow" aria-label="{{ $copy.workflow_label }}">
+<a class="workflow__stage workflow__stage--captua" href="https://ampl.clair.ucsb.edu/project/digitization-toolkit">{{ readFile "static/images/brand/captua-seedling-thick.svg" | replaceRE "<title>[^<]*</title>" "" | replaceRE "<svg " "<svg aria-hidden=\"true\" " | safeHTML }}<span class="workflow__name" role="img" aria-label="Captua"><svg viewBox="0 0 348 105" aria-hidden="true"><use href="/images/brand/captua-wordmark.svg#wordmark"/></svg></span><span>{{ $copy.workflow_capture }}</span></a>
+<span class="workflow__arrow" aria-hidden="true">→</span>
+<a class="workflow__stage workflow__stage--fisqua" href="https://ampl.clair.ucsb.edu/project/fisqua">{{ readFile "static/images/brand/fisqua-mark.svg" | replaceRE "<title>[^<]*</title>" "" | replaceRE "<svg " "<svg aria-hidden=\"true\" " | safeHTML }}<span class="workflow__name" role="img" aria-label="Fisqua">{{ readFile "static/images/brand/fisqua-wordmark.svg" | safeHTML }}</span><span>{{ $copy.workflow_catalog }}</span></a>
+<span class="workflow__arrow" aria-hidden="true">→</span>
+<a class="workflow__stage workflow__stage--zasqua" href="https://ampl.clair.ucsb.edu/project/zasqua">{{ readFile "static/images/brand/zasqua-mark.svg" | replaceRE "<title>[^<]*</title>" "" | replaceRE "<svg " "<svg aria-hidden=\"true\" " | safeHTML }}<span class="workflow__name" role="img" aria-label="Zasqua">{{ readFile "static/images/brand/zasqua-wordmark.svg" | safeHTML }}</span><span>{{ $copy.workflow_publish }}</span></a>
+</nav>
 </div></section>
 <div class="guide-hub">{{ if site.Params.docs_preview }}<div class="preview-label">{{ $labels.preview }}</div>{{ end }}
 {{ partial "hub.html" (dict "page" . "level" 2) }}
-<section class="home-credits" aria-labelledby="credits-heading"><h2 id="credits-heading">Credits</h2>
-<p>Captua is developed by Adelaida Ávila, Juan Cobo Betancourt (grant PI), Jairo Melo Flórez, Santiago Muñoz Arbeláez (grant co-PI), Lucrezia Pograri, and Catalina Salguero at the Archives, Memory, and Preservation Lab of the University of California, Santa Barbara and at the University of Texas at Austin.</p>
-<div class="neh-credit"><img class="logo-neh" src="/images/logos/neh-preferred-seal-white.png" alt="National Endowment for the Humanities" width="600" height="272"><div><p>Captua has been made possible in part by a major grant from the National Endowment for the Humanities: Democracy demands wisdom. (<a href="https://awardsearch.neh.gov/AwardDetail.aspx?gn=HAA-304052-25">NEH Award HAA-304052-25</a>: "Digitization Toolkit: a Blueprint for Egalitarian Access to Technology in Low-Resource Environments".)</p>
-<p class="neh-disclaimer">Any views, findings, conclusions, or recommendations expressed in this website do not necessarily represent those of the National Endowment for the Humanities.</p></div></div>
-<div class="home-logos"><img class="logo-ampl" src="/images/logos/ampl-ucsb-white.png" alt="AMPL, University of California, Santa Barbara" width="730" height="436"><img class="logo-ut" src="/images/logos/ut-history.svg" alt="Department of History, University of Texas at Austin" width="407" height="58"><img class="logo-burdick" src="/images/logos/burdick.png" alt="Burdick Global Scholars Program" width="400" height="213"><img class="logo-neogranadina" src="/images/logos/neogranadina-white.png" alt="Neogranadina" width="450" height="150"></div></section>
+<section class="home-credits" aria-labelledby="credits-heading"><h2 id="credits-heading">{{ $copy.credits }}</h2>
+<p>{{ $copy.credits_text }}</p>
+<p>{{ $copy.inspiration_credit | safeHTML }}</p>
+<div class="neh-credit"><img class="logo-neh" src="/images/logos/neh-preferred-seal-white.png" alt="{{ $copy.logo_neh }}" width="600" height="272"><div><p>{{ $copy.neh_credit | safeHTML }}</p>
+<p class="neh-disclaimer">{{ $copy.neh_disclaimer }}</p></div></div>
+<div class="home-logos"><img class="logo-ampl" src="/images/logos/ampl-ucsb-white.png" alt="{{ $copy.logo_ampl }}" width="730" height="436"><img class="logo-ut" src="/images/logos/ut-history.svg" alt="{{ $copy.logo_ut }}" width="407" height="58"><img class="logo-burdick" src="/images/logos/burdick.png" alt="{{ $copy.logo_burdick }}" width="400" height="213"><img class="logo-neogranadina" src="/images/logos/neogranadina-white.png" alt="{{ $copy.logo_neogranadina }}" width="450" height="150"></div></section>
 {{ partial "footer.html" (dict "labels" $labels) }}</div></main>
 {{ partial "search-dialog.html" (dict "labels" $labels "routes" $r) }}</body></html>

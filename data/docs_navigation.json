@@ -15,7 +15,7 @@
       "all_guides": "All guides",
       "search": "Search the guides",
       "close_search": "Close search",
-      "search_hint": "Search by task, feature or question.",
+      "search_hint": "Search by task, feature, or question.",
       "search_unavailable": "Search is unavailable.",
       "previous": "Previous",
       "next": "Next",
@@ -45,7 +45,48 @@
         "warning": "Warning",
         "caution": "Caution",
         "important": "Important"
-      }
+      },
+      "footer": "Captua is developed at the UCSB Archives, Memory, and Preservation Lab (AMPL) and the University of Texas at Austin, with funding from the National Endowment for the Humanities."
+    },
+    "es": {
+      "guides": "Guías",
+      "browse": "Ver las guías",
+      "contents": "En esta guía",
+      "all_guides": "Todas las guías",
+      "search": "Buscar en las guías",
+      "close_search": "Cerrar la búsqueda",
+      "search_hint": "Busca una tarea, una función o una pregunta.",
+      "search_unavailable": "La búsqueda no está disponible.",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "on_page": "En esta página",
+      "copy_code": "Copiar código",
+      "copied": "Copiado",
+      "copy_link": "Copiar enlace a esta sección",
+      "link_copied": "Enlace copiado",
+      "copy_failed": "No fue posible copiar. Selecciona el texto y cópialo.",
+      "table": "Tabla con desplazamiento horizontal",
+      "preview": "Vista previa de la documentación",
+      "help": "Código fuente de estas guías",
+      "index": "Resumen",
+      "open_menu": "Contenido de la guía",
+      "skip": "Ir al contenido",
+      "language": "Idioma",
+      "main_nav": "Navegación principal",
+      "breadcrumbs": "Ruta de navegación",
+      "pages": "Páginas de la guía",
+      "api_reference": "Referencia de la API",
+      "open_image": "Ver imagen en tamaño completo",
+      "not_found": "Página no encontrada",
+      "home": "Inicio",
+      "callout": {
+        "note": "Nota",
+        "tip": "Consejo",
+        "warning": "Advertencia",
+        "caution": "Precaución",
+        "important": "Importante"
+      },
+      "footer": "El Archives, Memory, and Preservation Lab (AMPL) de la Universidad de California en Santa Bárbara y la Universidad de Texas en Austin desarrollan Captua con financiación del National Endowment for the Humanities."
     }
   },
   "order": [
@@ -71,7 +112,8 @@
               }
             ]
           }
-        ]
+        ],
+        "page": "/docs/operators"
       },
       "cameras": {
         "title": "Cameras",
@@ -86,10 +128,14 @@
               },
               {
                 "page": "/docs/cameras/chdk"
+              },
+              {
+                "page": "/docs/deployment/pi5-imx519"
               }
             ]
           }
-        ]
+        ],
+        "page": "/docs/cameras"
       },
       "deployment": {
         "title": "Deployment",
@@ -127,86 +173,90 @@
               }
             ]
           }
-        ]
+        ],
+        "page": "/docs/deployment"
       }
     },
     "es": {
       "operators": {
-        "title": "TODO",
-        "url": "/guia/TODO/",
+        "title": "Operación",
+        "url": "/guia/operacion/",
         "groups": [
           {
             "id": "main",
-            "title": "TODO",
+            "title": "Operación",
             "items": [
               {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/operators/external-storage"
               },
               {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/operators/card"
               }
             ]
           }
-        ]
+        ],
+        "page": "/docs/operators"
       },
       "cameras": {
-        "title": "TODO",
-        "url": "/guia/TODO/",
+        "title": "Cámaras",
+        "url": "/guia/camaras/",
         "groups": [
           {
             "id": "main",
-            "title": "TODO",
+            "title": "Cámaras",
             "items": [
               {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/cameras/gphoto2"
               },
               {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/cameras/chdk"
+              },
+              {
+                "page": "/docs/deployment/pi5-imx519"
               }
             ]
           }
-        ]
+        ],
+        "page": "/docs/cameras"
       },
       "deployment": {
-        "title": "TODO",
-        "url": "/guia/TODO/",
+        "title": "Instalación y actualización",
+        "url": "/guia/instalacion/",
         "groups": [
           {
             "id": "hardware",
-            "title": "TODO",
+            "title": "Configuración del hardware",
             "items": [
               {
-                "page": "/guia/TODO/TODO"
-              },
-              {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/deployment/pi5-imx519"
               }
             ]
           },
           {
             "id": "software",
-            "title": "TODO",
+            "title": "Configuración del software",
             "items": [
               {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/deployment/sd-card-distribution"
               },
               {
-                "page": "/guia/TODO/TODO"
+                "page": "/docs/deployment/updating-a-unit"
               }
             ]
           },
           {
             "id": "reference",
-            "title": "TODO",
+            "title": "Referencia",
             "items": [
               {
-                "title": "TODO",
+                "title": "Referencia de la API",
                 "url": "https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md",
                 "external": true
               }
             ]
           }
-        ]
+        ],
+        "page": "/docs/deployment"
       }
     }
   }
