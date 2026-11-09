@@ -53,3 +53,7 @@ npm test
 The production build writes `public/` and builds the search index. `npm test` checks the built site: internal links and fragments resolve, every image exists and has alt text, every page has one title and one H1 and is not empty, canonical addresses and the robots policy match the build, no URL carries a token or other credential, both language search indexes are present, the sitemap index covers both languages, and every English page with a `translationKey` has a Spanish page or is listed in `data/translations_pending.json`. Results are written to the ignored `reports/` directory.
 
 The workflow in `.github/workflows/site.yml` builds and tests every pull request. On a push to `main`, after the checks pass, it deploys `public/` to Cloudflare Workers as static assets with Wrangler, using `wrangler.jsonc`, which also sets the custom domains `captua.org` and `www.captua.org`. Every page names `https://captua.org/` as its canonical address. The deploy reads two repository secrets, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+## Propose a change
+
+Branch from `main`, open a pull request into `main`, and merge it once the `build` check passes. `main` is protected: it takes changes only through a pull request whose `build` check has passed on a branch that is up to date with `main`. Merging the pull request publishes the change to captua.org within a few minutes.
