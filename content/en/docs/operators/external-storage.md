@@ -27,9 +27,6 @@ remain readable. To keep each volume on one disk, activate the drive or restore 
 between volumes, not while a volume is in progress. Only one external location can be active at a
 time.
 
-The note under **Storage drive** in **Settings**, "Only new projects will be saved to the selected
-drive", is out of date and will be corrected (NEH-325). This page describes what Captua does.
-
 If the active drive is disconnected or not mounted, Captua does not switch to the internal card.
 It refuses to save new captures until an administrator connects and activates the drive again, or
 restores internal storage.

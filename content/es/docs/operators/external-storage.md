@@ -18,8 +18,6 @@ Esta función depende de las operaciones que realiza el sistema operativo sobre 
 
 Mientras una unidad externa esté activa, Captua guarda todas las capturas nuevas en una carpeta `dtk-projects/` de esa unidad. Eso incluye las capturas nuevas de los volúmenes que empezaste en la tarjeta interna, así que las imágenes de esos volúmenes quedan repartidas en dos discos. Las imágenes que ya capturaste se quedan donde están y puedes seguir consultándolas. Para que cada volumen quede en un solo disco, activa la unidad o vuelve al almacenamiento interno entre un volumen y otro, nunca con un volumen a medias. Solo puedes tener una ubicación externa activa a la vez.
 
-En **Configuración**, la sección **Unidad de almacenamiento** muestra esta nota: "Solo los proyectos nuevos se guardarán en la unidad seleccionada". La nota está desactualizada y la vamos a corregir (NEH-325); esta página describe lo que Captua hace en realidad.
-
 Si alguien desconecta la unidad activa, o si no está montada, Captua no pasa a guardar en la tarjeta interna: no guarda ninguna captura nueva hasta que un administrador vuelva a conectar y activar la unidad, o hasta que restaure el almacenamiento interno.
 
 ---
