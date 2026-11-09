@@ -368,12 +368,6 @@ Swagger UI sends no `X-Requested-With` header, so the backend answers the login 
    ```
 3. Click "Execute": view the 200 OK response with the record ID (this endpoint does not set 201; `POST /collections/` does)
 
-##### Swagger UI status colours {#swagger-status-colours}
-
-- **2xx (Green):** Success
-- **4xx (Red):** Client error - check your request or role permissions
-- **5xx (Red):** Server error - backend issue
-
 ---
 
 ### 4.2 Option 2: a complete testing workflow in Swagger UI {#swagger-workflow}
