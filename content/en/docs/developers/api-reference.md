@@ -1095,7 +1095,7 @@ DATABASE_NAME=digitization_toolkit
 # building the URL from the DATABASE_* values above (alembic/env.py).
 # The application itself never reads it. Note the +psycopg driver — a bare
 # postgresql:// URL selects psycopg2, which is not installed.
-DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/digitization_toolkit
+# DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/digitization_toolkit
 
 # Security
 # Anything other than dev, development, test, testing or local requires a real

@@ -109,7 +109,8 @@ On a unit provisioned with `scripts/setup.sh`, the systemd service `dtk.service`
 
 ```bash
 # from the repository root: start PostgreSQL and wait until it is healthy
-docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --pull never --wait db
+# (the first run downloads the pinned PostgreSQL image, so it needs internet)
+docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --wait db
 cd backend
 pixi install --locked        # first time only
 pixi run setup-camera-link   # puts the system picamera2 and libcamera packages on the environment's path
