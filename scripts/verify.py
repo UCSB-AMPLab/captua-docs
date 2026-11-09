@@ -271,7 +271,13 @@ drafts = {front_matter(f).get('translationKey') for f in (ROOT / 'content' / 'en
 for entry in json.loads((ROOT / 'migration/sources.json').read_text())['pages']:
     check(entry['url'] in routes, f"Expected page not built: {entry['url']}")
     check(entry.get('translationKey') not in drafts, f"Expected page is a draft: {entry['url']}")
-check((PUBLIC / 'CNAME').exists() and (PUBLIC / 'CNAME').read_text().strip() == 'captua.org', 'CNAME missing or wrong')
+# Deployment: wrangler.jsonc serves public/ and binds the custom domain captua.org.
+try:
+    wr = json.loads('\n'.join(l for l in (ROOT / 'wrangler.jsonc').read_text().splitlines() if not l.lstrip().startswith('//')))
+    check(wr.get('assets', {}).get('directory') == './public', 'wrangler.jsonc does not serve ./public')
+    check({'pattern': 'captua.org', 'custom_domain': True} in wr.get('routes', []), 'wrangler.jsonc lacks the captua.org custom domain')
+except (OSError, ValueError) as e:
+    check(False, f'wrangler.jsonc unreadable: {e}')
 check(('Disallow: /' in (PUBLIC / 'robots.txt').read_text()) == preview, 'Wrong robots policy')
 
 out = {'checks': checks, 'failures': len(errors), 'preview': preview, 'pages': len(pages),
