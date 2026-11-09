@@ -6,8 +6,8 @@ docs_section: operators
 source: docs/users/external-storage.qmd
 ---
 
-The Digitization Toolkit can save captured images to an external USB drive or SD card instead of
-the device's internal storage. This is useful when digitizing large collections that would exceed
+Captua can save captured images to an external USB drive or SD card instead of
+the unit's internal storage. This is useful when digitizing large collections that would exceed
 the capacity of the built-in microSD card.
 
 {{< callout type="warning" title="Experimental feature" >}}
@@ -20,9 +20,19 @@ external drive as your **only** copy of digitized material — always keep a bac
 
 ## How it works {#how-it-works}
 
-When an external drive is **activated**, new projects are saved to a `dtk-projects/` folder on
-that drive. Existing projects already stored on the internal card are unaffected and remain
-accessible. Only one external location can be active at a time.
+While an external drive is **active**, Captua saves every new capture to a `dtk-projects/` folder
+on that drive. This includes new captures for volumes you started on the internal card, so the
+images of such a volume end up on two disks. Images captured earlier stay where they are and
+remain readable. To keep each volume on one disk, activate the drive or restore internal storage
+between volumes, not while a volume is in progress. Only one external location can be active at a
+time.
+
+The note under **Storage drive** in **Settings**, "Only new projects will be saved to the selected
+drive", is out of date and will be corrected (NEH-325). This page describes what Captua does.
+
+If the active drive is disconnected or not mounted, Captua does not switch to the internal card.
+It refuses to save new captures until an administrator connects and activates the drive again, or
+restores internal storage.
 
 ---
 
@@ -30,7 +40,7 @@ accessible. Only one external location can be active at a time.
 
 ### Recommended format: exFAT {#recommended-format-exfat}
 
-**exFAT** is the recommended format for external drives used with the toolkit. It is:
+**exFAT** is the recommended format for external drives used with Captua. It is:
 
 - Compatible with Linux, Windows, and macOS (no drivers needed on any platform)
 - Supports files larger than 4 GB (important for high-resolution image sets)
@@ -72,7 +82,7 @@ will permanently erase its contents.
 
 ### Format compatibility summary {#format-compatibility-summary}
 
-| Format | Works with DTK | Notes |
+| Format | Works with Captua | Notes |
 |--------|:--------------:|-------|
 | **exFAT** | ✅ Recommended | Best cross-platform choice |
 | **ext4** | ✅ Supported | Linux-only; slightly faster |
@@ -85,8 +95,12 @@ will permanently erase its contents.
 
 ## Using external storage in the UI {#using-external-storage-in-the-ui}
 
-Navigate to **Configuración** (the gear icon in the sidebar) and expand the
-**Unidad de almacenamiento** section.
+{{< callout type="note" >}}
+Only an administrator can do this. **Settings** does not appear in the sidebar for operators and reviewers.
+{{< /callout >}}
+
+Go to **Settings** (the gear icon in the sidebar). In the **Storage** section, click
+**Storage drive** (marked experimental) to expand it.
 
 ### Step 1 — Connect the drive {#step-1-connect-the-drive}
 
@@ -95,26 +109,26 @@ mounted beforehand.
 
 ### Step 2 — Mount the drive {#step-2-mount-the-drive}
 
-The device list shows all detected partitions. Unmounted partitions have a **Montar**
-(Mount) button.
+The device list shows the partitions Captua can use. Unmounted partitions have a **Mount**
+button.
 
 1. Find the partition you want to use in the list
-2. Click **Montar**
-3. The toolkit mounts the drive and the button changes to **Activar**
+2. Click **Mount**
+3. Captua mounts the drive, and the row then shows **Activate** and **Unmount**
 
 ### Step 3 — Activate the drive {#step-3-activate-the-drive}
 
-Click **Activar** next to the mounted partition. The toolkit:
+Click **Activate** next to the mounted partition. Captua:
 
 1. Creates a `dtk-projects/` directory on the drive (if it does not exist)
 2. Sets that directory as the active projects location
-3. Shows a green **activo** badge on the device row and a banner confirming the active path
+3. Shows a green **active** badge on the device row, **✓ In use** in place of the **Activate** button, and a banner confirming the active path
 
-New projects created after this point are stored on the external drive.
+From this point, every new capture is stored on the external drive.
 
 ### Deactivating / reverting to internal storage {#deactivating-reverting-to-internal-storage}
 
-Click **Restaurar predeterminado** in the override banner to switch back to the
+Click **Restore default** in the banner to switch back to the
 internal storage. The external drive is **not** unmounted — existing projects on it remain
 intact and accessible.
 
@@ -122,13 +136,15 @@ intact and accessible.
 
 Before physically unplugging the drive:
 
-1. If it is the active storage location, click **Restaurar predeterminado** first
-2. Click **Desmontar** next to the partition
+1. If it is the active storage location, you can click **Restore default** first. Clicking **Unmount** on the active drive also switches back to internal storage.
+2. Click **Unmount** next to the partition
 3. Wait for the success message
 4. Unplug the drive
 
+Captua can unmount only drives it mounted itself with **Mount**.
+
 {{< callout type="important" >}}
-Always click **Desmontar** before unplugging. Removing a drive while it is mounted can
+Always click **Unmount** before unplugging. Removing a drive while it is mounted can
 corrupt the filesystem and cause data loss.
 {{< /callout >}}
 
@@ -137,17 +153,20 @@ corrupt the filesystem and cause data loss.
 ## Troubleshooting {#troubleshooting}
 
 **Drive not appearing in the list**
-: The toolkit only shows partitions on removable devices that are not part of the
-operating system. Try clicking **Actualizar lista**. If the drive still does not appear,
-check that it is properly connected and recognised by the OS (`lsblk` in a terminal).
+: Captua lists the partitions it can use. It leaves out the operating system's own partitions and
+partitions whose filesystem it cannot use, such as APFS and HFS+. A drive formatted without a
+partition table does not appear either: create a partition on it with Disk Utility or another
+partitioning tool, then format that partition (for example `/dev/sdX1`) as exFAT. If the drive uses
+APFS or HFS+, reformat it as exFAT as well. Then click **Refresh list**. If the drive still does not
+appear, check that it is properly connected and recognised by the OS (`lsblk` in a terminal).
 
-**"Montar" returns an error**
-: The drive may use an unsupported format (APFS, HFS+) or require additional kernel modules
-(NTFS). Reformat the drive as exFAT and try again.
+**"Mount" returns an error**
+: The filesystem may have errors, or the drive may need additional kernel modules (NTFS).
+Reformat the drive as exFAT and try again.
 
-**"Activar" fails with a permission error**
+**"Activate" fails with a permission error**
 : This can happen on freshly formatted ext4 drives where the filesystem root is owned by
-`root`. The toolkit attempts a fallback using elevated privileges. If it still fails,
+`root`. Captua attempts a fallback using elevated privileges. If it still fails,
 reformat the drive as exFAT.
 
 **Drive mounted but read-only**

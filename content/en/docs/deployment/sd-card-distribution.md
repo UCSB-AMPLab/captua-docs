@@ -8,7 +8,7 @@ source: docs/developers/sd_card_distribution.qmd
 
 ***
 
-This guide explains how to prepare and ship a Raspberry Pi SD card image with the Digitization Toolkit pre-installed, so the recipient can plug it in and access the application from any device on the same network — without any manual IP configuration.
+This guide explains how to prepare and ship a Raspberry Pi SD card image with Captua pre-installed, so the recipient can plug it in and access the application from any device on the same network — without any manual IP configuration.
 
 ---
 
@@ -22,6 +22,40 @@ The browser calls the API at `/api` on the page's own origin, and Nginx on port 
 
 ## Preparing the Master Image {#preparing-the-master-image}
 
+### 0. Install Captua on the master card {#install-captua-on-the-master-card}
+
+Flash **Raspberry Pi OS (Legacy, 64-bit) Lite**, Debian 12 "Bookworm": it is the system Captua is tested on. Raspberry Pi Imager's plain "Raspberry Pi OS Lite (64-bit)" entry now installs Debian 13 "Trixie", which Captua has not been validated against. In Imager's customisation options, set the username to `pi`: `scripts/dtk.service` runs the service as `pi` from `/home/pi/dtk`, and the kiosk installer expects the same user. Set up the network and SSH there as well (see [What the Recipient Needs to Do](#what-the-recipient-needs-to-do)).
+
+Then, on the Pi, as `pi`, with an internet connection:
+
+```bash
+sudo apt update && sudo apt install -y git
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+```
+
+Log out and back in, so that the `pi` account is in the `docker` group, then continue:
+
+```bash
+curl -fsSL https://pixi.sh/install.sh | PIXI_VERSION=v0.73.0 bash
+git config --global url."https://github.com/".insteadOf "git@github.com:"
+git clone --recurse-submodules https://github.com/UCSB-AMPLab/digitization-toolkit-software.git ~/dtk
+cd ~/dtk
+sudo ./scripts/setup.sh
+sudo ./scripts/install-service.sh
+sudo systemctl start dtk
+curl http://localhost:8000/health   # {"status":"ok"}
+curl -I http://localhost            # HTTP 200, the interface through nginx
+sudo ./scripts/installkb.sh
+sudo ./scripts/install-kiosk-service.sh
+```
+
+- The `git config` line comes before the clone because `.gitmodules` registers the submodules over SSH (`git@github.com:`), and the Pi has no GitHub key: the line makes git fetch them over HTTPS. The repositories are public, so the clone needs no token.
+- pixi is pinned to the version in `PIXI_VERSION` in `scripts/setup.sh`: older versions cannot read the committed `pixi.lock`.
+- `setup.sh` creates `.env` from `.env.example`, builds the frontend image, installs the backend environment, names the unit (step 1), and applies the database migrations. It needs the internet; the card does not need it afterwards.
+- `install-service.sh` installs and enables `dtk.service` and `dtk-secrets.service`, but does not start `dtk`; `systemctl start` does, and the two `curl` lines check that the backend and the interface answer.
+- `installkb.sh` and `install-kiosk-service.sh` set up the kiosk: the full-screen browser on the display attached to the Pi.
+
 ### 1. Name the unit {#name-the-unit}
 
 `setup.sh` names the unit `captua` (step 6f, `scripts/provision-hostname.sh`): it sets the hostname and the `127.0.1.1` line of `/etc/hosts`, and sets `HOST_IP=captua.local` and adds `http://captua.local` to `CORS_ORIGINS` in `.env`. Nothing needs editing by hand.
@@ -29,8 +63,10 @@ The browser calls the API at `/api` on the page's own origin, and Nginx on port 
 Two units on one network cannot share a name. For the second unit at such a site, give it its own name when running setup:
 
 ```bash
-sudo DTK_HOSTNAME=captua-2 ./scripts/setup.sh
+sudo CAPTUA_HOSTNAME=captua-2 ./scripts/setup.sh
 ```
+
+`setup.sh` still accepts the older name `DTK_HOSTNAME`.
 
 Verify:
 
@@ -109,13 +145,13 @@ gzip dtk-master.img
 The result is `dtk-master.img.gz`. On Windows, you can use a compression tool that supports gzip.
 
 {{< callout type="note" title="Secrets are per-unit — imaging is safe at any point" >}}
-`SECRET_KEY` and `DATABASE_PASSWORD` are regenerated automatically on each physical unit by `dtk-secrets.service` (installed by `install-service.sh`). It records the Pi's hardware serial in `/var/lib/dtk/secrets-provenance`; when a flashed clone boots on a different Pi, the serial mismatch triggers fresh secrets before the backend starts — including rotating the Postgres password inside the cloned data directory. You do **not** need to scrub secrets from the master image, and test-booting the master before imaging is fine.
+`SECRET_KEY`, `DATABASE_PASSWORD`, and `BOOTSTRAP_TOKEN` (the token for creating the first account) are regenerated automatically on each physical unit by `dtk-secrets.service` (installed by `install-service.sh`). It records the Pi's hardware serial in `/var/lib/dtk/secrets-provenance`; when a flashed clone boots on a different Pi, the serial mismatch triggers fresh secrets before the backend starts — including rotating the Postgres password inside the cloned data directory. You do **not** need to scrub secrets from the master image, and test-booting the master before imaging is fine.
 {{< /callout >}}
 
 {{< callout type="warning" title="Never add a credential to `.env` by hand" >}}
-The per-unit generation above covers `SECRET_KEY` and `DATABASE_PASSWORD`. It does not cover anything you add yourself while preparing a card — and whatever sits in `.env` at imaging time is copied into every clone of that image. The Rionegro card shipped with a live GitHub personal access token in plaintext in `~/dtk/.env`. It was unused and has been revoked, but nothing in the software put it there.
+The per-unit generation above covers `SECRET_KEY`, `DATABASE_PASSWORD`, and `BOOTSTRAP_TOKEN`. It does not cover anything you add yourself while preparing a card — and whatever sits in `.env` at imaging time is copied into every clone of that image. A card has been found with a live GitHub personal access token in plaintext in `~/dtk/.env`; nothing in the software put it there.
 
-Provisioning never needs a token: the repositories are public and `setup.sh` clones them anonymously. If a private fetch is ever required, read the token from a prompt so it never appears on the command line, then clear it:
+Provisioning never needs a token: the repositories are public, so you clone them over HTTPS with no token, and `setup.sh` makes later submodule fetches use HTTPS as well. If a private fetch is ever required, read the token from a prompt so it never appears on the command line, then clear it:
 
 ```bash
 read -rs -p "Token: " GH_TOKEN && export GH_TOKEN
@@ -126,6 +162,15 @@ unset GH_TOKEN
 Do **not** pass it inline as `GH_TOKEN=… gh …`: that writes the token verbatim into `~/.bash_history`, which sits on the card and is copied into the image along with everything else. For the same reason, never embed a token in a remote URL — it persists in `.git/config` and travels with the image.
 
 Before imaging a master card, diff `.env` against `.env.example`: it should carry no keys the template does not have.
+{{< /callout >}}
+
+{{< callout type="warning" title="Provision the offsite copy and accounts on each unit, not on the master" >}}
+Everything else on the card is copied into every clone as well, and the per-unit generation does not change it:
+
+- `/var/lib/dtk/offsite.env` and `/var/lib/dtk/rclone.conf`, which `provision-rclone.sh` writes when it is given a unit's offsite key or Fisqua token. `setup.sh` already runs it without key material; give it none on the master, and provision each unit's offsite copy after flashing, as in [Updating a Unit, step 4](/docs/deployment/updating-a-unit/#provision-the-offsite-copy-without-restarting).
+- The database, with every account created during a test boot. Create no accounts on the master.
+
+From the release after 0.2.0, a card that has been started before its offsite copy is provisioned is in "Scanner only" mode, and so is every clone of it. Set the mode on each unit once its offsite copy is provisioned ([Updating a Unit, 6.2a](/docs/deployment/updating-a-unit/#set-the-units-mode)).
 {{< /callout >}}
 
 ---
@@ -172,17 +217,17 @@ Do not assume Imager can apply the same customisation options to a cloned local 
 - Try pinging: `ping captua.local`
 - As a fallback, find the IP via the router's DHCP client list and open it directly: the app works by IP.
 
-**A unit in service before 0.1.0 answers as `digitool.local`**
+**A unit in service before 0.1.0-beta answers as `digitool.local`**
 
-Units set up before 0.1.0 were called `digitool`. `update.sh` renames them to `captua` and keeps `digitool.local` answering through 0.1.x (see [Updating a unit](/docs/deployment/updating-a-unit/#the-unit-name-digitool-becomes-captua)).
+Units set up before 0.1.0-beta were called `digitool`. `update.sh` renames them to `captua` and keeps `digitool.local` answering; 0.2.0 still does (see [Updating a unit](/docs/deployment/updating-a-unit/#the-unit-name-digitool-becomes-captua)).
 
 **CORS errors in the browser**
 
-The browser calls the API on the page's own origin, so the production stack has no cross-origin calls and this error should not occur there. On the development stack (Vite on `:5173` calling the backend on `:8000`), the page's origin must be in `CORS_ORIGINS` in `.env`; update that list and restart the backend. The page and the API must also be on the same site, because the session cookie is `SameSite=Strict`: open the page on `localhost` when `PUBLIC_API_BASE` names `localhost`, and on `127.0.0.1` when it names `127.0.0.1`. With a mismatch the browser shows no CORS error: the backend answers the login with 200 and refuses the next request with 401. [`docs/developers/API_REFERENCE.md`](https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md), section 8, CORS Configuration, has the details.
+The browser calls the API on the page's own origin, so the production stack has no cross-origin calls and this error should not occur there. On the development stack (Vite on `:5173` calling the backend on `:8000`), the page's origin must be in `CORS_ORIGINS` in `.env`; update that list and restart the backend. The page and the API must also be on the same site, because the session cookie is `SameSite=Strict`: open the page on `localhost` when `PUBLIC_API_BASE` names `localhost`, and on `127.0.0.1` when it names `127.0.0.1`. With a mismatch the browser shows no CORS error: the backend answers the login with 200 and refuses the next request with 401. The [API reference, CORS Configuration](/docs/developers/api-reference/#cors-configuration), has the details.
 
 **Two Pis on the same network**
 
-mDNS hostnames must be unique per network. Name the second unit at setup with `DTK_HOSTNAME=captua-2` (step 1). On a unit already set up, run the same script by hand:
+mDNS hostnames must be unique per network. Name the second unit at setup with `CAPTUA_HOSTNAME=captua-2` (step 1). On a unit already set up, run the same script by hand:
 
 ```bash
 sudo /home/pi/dtk/scripts/provision-hostname.sh --name captua-2

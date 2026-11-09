@@ -1,5 +1,5 @@
 ---
-title: "Actualizar un equipo a 0.1.0"
+title: "Actualizar un equipo"
 url: /guia/instalacion/actualizar-un-equipo/
 translationKey: docs-deployment-updating-a-unit
 docs_section: deployment
@@ -8,9 +8,11 @@ source: docs/developers/updating_a_unit.qmd
 
 ***
 
-Esta guía está dirigida a quien administra un equipo. Explica cómo actualizar un equipo que ya está en uso a la versión 0.1.0 y recoge los pasos que debes realizar una sola vez, en el orden necesario. Al final encontrarás una versión breve para un equipo nuevo.
+Esta guía está dirigida a quien administra un equipo. Explica cómo actualizar a la versión actual un equipo que tiene una versión anterior a 0.1.0-beta, con los pasos que solo debes hacer una vez, en el orden necesario. Escribimos estos pasos para la actualización a 0.1.0-beta; por eso la guía la llama "la instalación de 0.1.0-beta". Sirven para cualquier equipo con una versión anterior a 0.1.0-beta, sea cual sea la versión que tenga `main`. Al final encontrarás una versión breve para un equipo nuevo.
 
 Los comandos suponen una instalación con la configuración que incluye `scripts/dtk.service`: el repositorio está en `/home/pi/dtk` y el servicio usa la cuenta `pi`. Ejecútalos por SSH como `pi`.
+
+En esta guía, las variables de configuración se llaman `CAPTUA_<X>`. Captua también lee los nombres anteriores, `DTK_<X>`. En los archivos del equipo (`.env` y `/var/lib/dtk/offsite.env`), las variables mantienen los nombres `DTK_`, porque una reversión puede devolver el equipo a un código que solo lee esos nombres. Si una variable está definida con los dos nombres, Captua usa la de `CAPTUA_`.
 
 ---
 
@@ -24,7 +26,7 @@ git -C /home/pi/dtk submodule status
 sudo cat /var/lib/dtk/backups/last-deployed-SHA
 ```
 
-`update.sh` registra como destino para la reversión el commit indicado en `last-deployed-SHA` y vuelve a él si la actualización falla. Con `--no-pull`, que usa la instalación de 0.1.0 (2.1), el script no inicia ni modifica nada si ese archivo no existe, está vacío o indica un commit que no está en el repositorio local. El repositorio ya contiene el código nuevo y no puede sustituir ese registro. En ese caso, antes del paso 2.1, escribe el commit que imprimió el primer comando:
+`update.sh` registra como destino para la reversión el commit indicado en `last-deployed-SHA` y vuelve a él si la actualización falla. Con `--no-pull`, que usa la instalación de 0.1.0-beta (2.1), el script no inicia ni modifica nada si ese archivo no existe, está vacío o indica un commit que no está en el repositorio local. El repositorio ya contiene el código nuevo y no puede sustituir ese registro. En ese caso, antes del paso 2.1, escribe el commit que imprimió el primer comando:
 
 ```bash
 echo <commit> | sudo tee /var/lib/dtk/backups/last-deployed-SHA
@@ -56,11 +58,11 @@ sudo ls -lt /var/lib/dtk/backups/
 
 Algunos equipos tienen un temporizador de carga que alguien instaló manualmente antes de que el backend pudiera subir archivos. Estos temporizadores dependen de cada equipo y no forman parte del software.
 
-En el equipo de Rionegro, el temporizador `b2push-interim` ejecuta `/home/pi/b2push.sh`. Ese script sube al bucket las imágenes y la copia diaria del catálogo que genera con `pg_dumpall`. Busca el temporizador y detenlo para que, después de actualizar, solo el backend escriba en el bucket:
+Un temporizador de este tipo ejecuta un script hecho para ese equipo, que sube las imágenes al bucket y, a veces, también una copia diaria del catálogo que el propio script genera con `pg_dumpall`. Busca el temporizador y detenlo para que, después de actualizar, solo el backend escriba en el bucket:
 
 ```bash
 systemctl list-timers --all
-sudo systemctl disable --now b2push-interim.timer
+sudo systemctl disable --now <timer>.timer
 ```
 
 Usa el nombre que muestre `list-timers` en tu equipo. No tenemos registrado el nombre del servicio que inicia el temporizador; `systemctl list-timers` lo muestra en la columna `ACTIVATES`. Si el servicio está en ejecución, espera a que termine antes del paso 2.
@@ -68,14 +70,14 @@ Usa el nombre que muestre `list-timers` en tu equipo. No tenemos registrado el n
 Si abandonas la actualización antes del paso 3, habilita de nuevo el temporizador para que el equipo siga subiendo archivos como antes:
 
 ```bash
-sudo systemctl enable --now b2push-interim.timer
+sudo systemctl enable --now <timer>.timer
 ```
 
 ### 1.5 Fijar el nombre de Tailscale del equipo {#pin-the-units-tailscale-name}
 
 La actualización cambia el nombre del equipo de `digitool` a `captua` (2.6) cuando apt puede acceder a sus repositorios. El alias que permite seguir usando `digitool.local` necesita `avahi-utils`, que instala la actualización. Si el equipo no tiene acceso a apt, conserva su nombre hasta una actualización que sí tenga acceso.
 
-Tailscale toma el nombre del equipo del hostname, salvo que hayas fijado otro nombre. Si accedes al equipo con `ssh pi-dtk` o con su nombre de Tailscale, el cambio de hostname también cambiaría su nombre en la red de Tailscale. Antes de actualizar, fija explícitamente el nombre que tiene ahora en esa red:
+Tailscale toma el nombre del equipo del hostname, salvo que hayas fijado otro nombre. Si accedes al equipo por SSH con su nombre de Tailscale, el cambio de hostname también cambiaría su nombre en la red de Tailscale. Antes de actualizar, fija explícitamente el nombre que tiene ahora en esa red:
 
 ```bash
 tailscale status --self
@@ -88,11 +90,11 @@ El software no modifica Tailscale. Omite este paso si el equipo no usa Tailscale
 
 ## 2. Ejecutar la actualización {#run-the-update}
 
-### 2.1 Descargar primero el código de 0.1.0 {#put-the-0.1.0-code-on-disk-first}
+### 2.1 Descargar primero el código de 0.1.0-beta {#put-the-0.1.0-code-on-disk-first}
 
-Para instalar 0.1.0, descarga el código nuevo y selecciona su revisión manualmente. Solo después ejecuta `update.sh` con `--no-pull`. Todos los equipos deben seguir este procedimiento para esta instalación. Bash lee el script del disco mientras lo ejecuta. Si `update.sh` descarga su propia actualización, esa ejecución conserva el manejo de errores de la copia anterior y no cuenta con ninguna de las protecciones del script nuevo.
+Para instalar 0.1.0-beta, descarga el código nuevo y selecciona su revisión manualmente. Solo después ejecuta `update.sh` con `--no-pull`. Todos los equipos deben seguir este procedimiento para esta instalación. Bash lee el script del disco mientras lo ejecuta. Si `update.sh` descarga su propia actualización, esa ejecución conserva el manejo de errores de la copia anterior y no cuenta con ninguna de las protecciones del script nuevo.
 
-Los equipos usan `main`, que solo cambia con las publicaciones de nuevas versiones. Si un equipo usa `dev`, cámbialo a `main` aquí, una sola vez. En el momento de redactar la guía, ese era el caso del equipo de pruebas y del equipo de Rionegro. Como `pi`, ejecuta:
+Los equipos usan `main`, que solo cambia con las publicaciones de nuevas versiones. Si un equipo usa `dev`, cámbialo a `main` aquí, una sola vez. Como `pi`, ejecuta:
 
 ```bash
 git -C /home/pi/dtk fetch origin
@@ -146,7 +148,7 @@ git -C /home/pi/dtk submodule foreach --quiet --recursive 'git ls-files -v | gre
 
 `checkout` rechaza una operación que sobrescribiría cambios locales. Guarda esos cambios aparte manualmente antes de continuar: `update.sh` solo lo hace cuando descarga código.
 
-**Después de volver a una versión anterior a 0.1.0:** la reversión restaura el `update.sh` de esa versión anterior. La próxima actualización debe seguir de nuevo este procedimiento: descarga el código, selecciona la revisión manualmente y ejecuta el nuevo `update.sh` con `--no-pull` (8.4). El procedimiento de "Actualizaciones posteriores" que aparece más abajo ejecutaría el script antiguo.
+**Después de volver a una versión anterior a 0.1.0-beta:** la reversión restaura el `update.sh` de esa versión anterior. La próxima actualización debe seguir de nuevo este procedimiento: descarga el código, selecciona la revisión manualmente y ejecuta el nuevo `update.sh` con `--no-pull` (8.4). El procedimiento de "Actualizaciones posteriores" que aparece más abajo ejecutaría el script antiguo.
 
 ### 2.2 Ejecutar `update.sh` fuera de la sesión SSH {#run-update.sh-outside-the-ssh-session}
 
@@ -177,9 +179,9 @@ Todos los rechazos incluyen `Nothing has been changed.` El script muestra sus co
 
 **Actualizaciones posteriores, desde 0.1.x**
 
-Una vez instalado 0.1.0, el disco ya contiene el script nuevo. Entonces puedes usar el procedimiento habitual: `sudo systemd-run --unit=dtk-deploy --collect /home/pi/dtk/scripts/update.sh --yes`.
+Una vez instalado 0.1.0-beta, el disco ya contiene el script nuevo. Entonces puedes usar el procedimiento habitual: `sudo systemd-run --unit=dtk-deploy --collect /home/pi/dtk/scripts/update.sh --yes`.
 
-El script descarga `main` y la actualiza mediante un avance directo (fast-forward). Esto solo vale mientras el repositorio tenga 0.1.0 o una versión posterior. Si vuelves a una versión anterior a 0.1.0, el disco vuelve a contener el script antiguo y la siguiente actualización debe seguir el paso 2.1: descarga y selecciona el código manualmente, y después ejecuta el nuevo `update.sh` con `--no-pull` (8.4).
+El script descarga `main` y la actualiza mediante un avance directo (fast-forward). Esto solo vale mientras el repositorio tenga 0.1.0-beta o una versión posterior. Si vuelves a una versión anterior a 0.1.0-beta, el disco vuelve a contener el script antiguo y la siguiente actualización debe seguir el paso 2.1: descarga y selecciona el código manualmente, y después ejecuta el nuevo `update.sh` con `--no-pull` (8.4).
 
 ### 2.3 Qué hace `update.sh` {#what-update.sh-does}
 
@@ -217,9 +219,9 @@ journalctl -u dtk --since "15 min ago" | grep -E "Volume layout:|Cannot start|Tr
 
 ### 2.5 Comprobar que todavía no haya cargas {#check-that-nothing-uploads-yet}
 
-Al arrancar, el backend solo activa sus tareas programadas de carga cuando tiene tanto `DTK_OFFSITE_REMOTE` como un `DTK_OFFSITE_TENANT` válido. Un equipo que aún no has preparado para 0.1.0 no tiene tenant y, por tanto, no sube nada. Compruébalo antes del paso 3 con la solicitud de 6.3: `images.enabled` debe ser `false`.
+Al arrancar, el backend solo activa sus tareas programadas de carga cuando tiene tanto `CAPTUA_OFFSITE_REMOTE` como un `CAPTUA_OFFSITE_TENANT` válido. Un equipo que aún no has preparado para 0.1.0-beta no tiene tenant y, por tanto, no sube nada. Compruébalo antes del paso 3 con la solicitud de 6.3: `images.enabled` debe ser `false`.
 
-Si es `true`, el proceso de carga usa el nombre del archivo en el disco como clave de cada objeto. Una imagen que ya copiaste al bucket con un nombre del contrato tendría otra carga bajo una segunda clave; después, `adopt-map` rechazaría su entrada con `key_differs`. Si `offsite.env` ya registra un destino remoto y un tenant, crea el archivo de suspensión de cargas (4.0) antes del paso 2. Así, el backend mantendrá suspendidas las cargas desde el reinicio de la actualización:
+Si es `true`, el proceso de carga usa el nombre del archivo en el disco como clave de cada objeto. Una imagen que ya copiaste al bucket con un nombre del contrato tendría otra carga bajo una segunda clave; después, `adopt-map` rechazaría su entrada con `key_differs`. Si `offsite.env` ya registra un destino remoto y un tenant, crea el archivo de suspensión de cargas (4.0) antes del paso 2. Así, el backend mantendrá suspendidas las cargas desde el reinicio de la actualización. En `offsite.env`, las dos claves aparecen con sus nombres `DTK_`:
 
 ```bash
 sudo grep -E '^DTK_OFFSITE_(REMOTE|TENANT)=' /var/lib/dtk/offsite.env
@@ -227,12 +229,12 @@ sudo grep -E '^DTK_OFFSITE_(REMOTE|TENANT)=' /var/lib/dtk/offsite.env
 
 ### 2.6 El nombre del equipo: de digitool a captua {#the-unit-name-digitool-becomes-captua}
 
-Desde 0.1.0, todos los equipos tienen el nombre `captua` y responden en `http://captua.local`. El navegador llama a la API en `/api`, en el mismo origen que la página, a través de nginx. Por eso también puedes abrir el equipo por su dirección IP o por cualquier otro nombre que apunte a él. El quiosco abre `http://localhost` en lugar de `http://localhost:3000`.
+Desde 0.1.0-beta, todos los equipos tienen el nombre `captua` y responden en `http://captua.local`. El navegador llama a la API en `/api`, en el mismo origen que la página, a través de nginx. Por eso también puedes abrir el equipo por su dirección IP o por cualquier otro nombre que apunte a él. El quiosco abre `http://localhost` en lugar de `http://localhost:3000`.
 
 `update.sh` solo cambia el nombre si el hostname es exactamente `digitool` y `.env` contiene `HOST_IP=digitool.local`. Si alguien asignó otro nombre manualmente, el script lo conserva. `scripts/provision-hostname.sh` realiza el trabajo en dos llamadas:
 
-- Antes de detener el servicio, con `--prepare`: instala `avahi-utils` mediante apt si falta, el script de alias `/usr/local/sbin/dtk-mdns-alias`, su unidad `dtk-mdns-alias.service`, el script de respuesta a eventos de NetworkManager `/etc/NetworkManager/dispatcher.d/90-dtk-mdns-alias` y el archivo adicional de configuración `/etc/systemd/system/dtk.service.d/hostname-repair.conf`. También intenta usar apt con `--no-pull`, así que la instalación de 0.1.0 (2.1) cambia el nombre si el equipo tiene acceso a apt. Solo `update.sh --no-pull --offline` omite apt. Si no puede instalar `avahi-utils`, el registro indica `The rename to captua waits for avahi-utils`: el equipo conserva `digitool` hasta una actualización con acceso a apt y la actualización continúa.
-- Con `dtk` detenido, con `--switch`: escribe `127.0.1.1 captua digitool` en `/etc/hosts`, ejecuta `hostnamectl set-hostname captua`, reinicia `avahi-daemon` e inicia `dtk-mdns-alias`, que mantiene la respuesta de `digitool.local` durante la serie 0.1.x. Después comprueba que `captua.local` y `digitool.local` resuelvan a una dirección del propio equipo. Si alguno no responde o apunta a otro dispositivo, restaura el nombre, `/etc/hosts`, avahi y el alias, y conserva `.env` sin cambios. Si ambos apuntan al equipo, establece `HOST_IP=captua.local` en `.env` y añade `http://captua.local` a `CORS_ORIGINS`, conservando `http://digitool.local`.
+- Antes de detener el servicio, con `--prepare`: instala `avahi-utils` mediante apt si falta, el script de alias `/usr/local/sbin/dtk-mdns-alias`, su unidad `dtk-mdns-alias.service`, el script de respuesta a eventos de NetworkManager `/etc/NetworkManager/dispatcher.d/90-dtk-mdns-alias` y el archivo adicional de configuración `/etc/systemd/system/dtk.service.d/hostname-repair.conf`. También intenta usar apt con `--no-pull`, así que la instalación de 0.1.0-beta (2.1) cambia el nombre si el equipo tiene acceso a apt. Solo `update.sh --no-pull --offline` omite apt. Si no puede instalar `avahi-utils`, el registro indica `The rename to captua waits for avahi-utils`: el equipo conserva `digitool` hasta una actualización con acceso a apt y la actualización continúa.
+- Con `dtk` detenido, con `--switch`: escribe `127.0.1.1 captua digitool` en `/etc/hosts`, ejecuta `hostnamectl set-hostname captua`, reinicia `avahi-daemon` e inicia `dtk-mdns-alias`, que mantiene la respuesta de `digitool.local`. La versión 0.2.0 todavía instala el alias; ninguna versión lo ha retirado. Después comprueba que `captua.local` y `digitool.local` resuelvan a una dirección del propio equipo. Si alguno no responde o apunta a otro dispositivo, restaura el nombre, `/etc/hosts`, avahi y el alias, y conserva `.env` sin cambios. Si ambos apuntan al equipo, establece `HOST_IP=captua.local` en `.env` y añade `http://captua.local` a `CORS_ORIGINS`, conservando `http://digitool.local`.
 
 Ninguna de las dos llamadas puede hacer fallar la actualización. Si el cambio de nombre no termina, el script imprime `⚠ The rename to captua did not finish` y el equipo sigue funcionando como `digitool`.
 
@@ -240,31 +242,31 @@ Si un corte de corriente interrumpe el cambio de nombre, el siguiente arranque d
 
 Si el hostname sigue siendo `digitool`, el script deshace el cambio. Si alguien asignó otro nombre manualmente con `--name`, conserva ese nombre y elimina el registro. Al deshacer el cambio, solo restaura `/etc/hosts` cuando el hostname vuelve a ser `digitool`; si `hostnamectl` falla, conserva el estado para que el siguiente arranque vuelva a intentarlo. El script también termina de reparar un equipo llamado `captua` cuyo `.env` aún contiene `HOST_IP=digitool.local`, independientemente del estado del registro. La reparación elimina además los archivos temporales que un corte de corriente puede dejar junto a `.env`, `/etc/hosts` y el registro.
 
-Una actualización fallida y una reversión restauran el código, pero conservan el nombre. El código anterior a 0.1.0 funciona con él: su frontend llama a `http://${HOST_IP}/api`, ahora `http://captua.local/api`, y `CORS_ORIGINS` incluye ambos nombres. Así, una página abierta en `digitool.local` puede llamar a la API.
+Una actualización fallida y una reversión restauran el código, pero conservan el nombre. El código anterior a 0.1.0-beta funciona con él: su frontend llama a `http://${HOST_IP}/api`, ahora `http://captua.local/api`, y `CORS_ORIGINS` incluye ambos nombres. Así, una página abierta en `digitool.local` puede llamar a la API.
 
 Cuando la versión nueva responde a `/health`, `update.sh` termina el proceso `cage` del quiosco, únicamente el de `pi`, y el inicio automático de sesión de tty1 vuelve a lanzarlo con el `start-kiosk.sh` nuevo en `http://localhost`. Ese es un origen nuevo para el navegador, así que el quiosco pide iniciar sesión una vez. `update.sh --resolve-forward` (7.4) vuelve a lanzar el quiosco del mismo modo después de iniciar `dtk`; una reversión lo abre en la dirección de la versión restaurada.
 
-El bloqueo del perfil de Chromium, `~/.config/chromium/SingletonLock`, registra el hostname con el que Chromium lo creó, y Chromium rechaza un perfil bloqueado con otro nombre. El cambio de nombre actualiza el bloqueo del quiosco en ejecución a `captua`; si deshace el cambio, lo devuelve a `digitool`. Así, el siguiente Chromium puede usar el perfil con el `start-kiosk.sh` que haya en el disco después de una actualización, restauración o reversión. El script obtiene el usuario del quiosco del inicio automático de sesión de tty1 que configura `install-kiosk-service.sh`. Antes de iniciar Chromium, el `start-kiosk.sh` de 0.1.0 también elimina `SingletonLock`, `SingletonCookie` y `SingletonSocket`, salvo que siga activo un Chromium de `pi`.
+El bloqueo del perfil de Chromium, `~/.config/chromium/SingletonLock`, registra el hostname con el que Chromium lo creó, y Chromium rechaza un perfil bloqueado con otro nombre. El cambio de nombre actualiza el bloqueo del quiosco en ejecución a `captua`; si deshace el cambio, lo devuelve a `digitool`. Así, el siguiente Chromium puede usar el perfil con el `start-kiosk.sh` que haya en el disco después de una actualización, restauración o reversión. El script obtiene el usuario del quiosco del inicio automático de sesión de tty1 que configura `install-kiosk-service.sh`. Antes de iniciar Chromium, el `start-kiosk.sh` de 0.1.0-beta también elimina `SingletonLock`, `SingletonCookie` y `SingletonSocket`, salvo que siga activo un Chromium de `pi`.
 
 Dos equipos de la misma red llamados `digitool` no pueden adoptar ambos el nombre `captua`: la comprobación del segundo detecta que el primero responde como `captua.local` y deshace el cambio. Asigna al segundo un nombre propio manualmente, como explica la solución de problemas de [Preparación y distribución de tarjetas SD](/guia/instalacion/tarjetas-sd/). La actualización conservará ese nombre.
 
 ---
 
-## 3. Asignar a cada volumen su prefijo de nombre de archivo y reiniciar {#give-each-volume-its-stem-then-restart}
+## 3. Asignar a cada volumen su raíz y reiniciar {#give-each-volume-its-stem-then-restart}
 
-### 3.1 Asignar los prefijos {#set-the-stems}
+### 3.1 Asignar las raíces {#set-the-stems}
 
-En la interfaz, abre el proyecto, edita cada volumen con **Edit Volume** y completa **FILE NAME STEM**. Estas son las reglas:
+En la interfaz, abre el proyecto, edita cada volumen con **Editar volumen** y completa el campo **RAÍZ**. Estas son las reglas:
 
 - Letras minúsculas y dígitos unidos por guiones simples, con un máximo de 27 caracteres.
-- El prefijo debe coincidir con el código de referencia del volumen en Fisqua. El backend rechaza un prefijo distinto del código registrado. En **Edit Volume**, el mensaje es `The stem has to be the volume's Fisqua reference code, "<code>"; "<stem>" is different. Use "<code>" as the stem.` Una solicitud `PATCH` al volumen recibe `409` con `The reference code '<code>' is not the file name stem '<stem>'; a volume's reference code is its file name stem.` Una importación rechaza ese elemento con `filename_stem_differs_from_reference_code` ("The filenameStem is not the same as the referenceCode.") y continúa con el resto.
-- Debe ser único en el equipo y no coincidir con el nombre del directorio de un proyecto.
-- El backend lo rechaza mientras `<projects root>/<stem>/` contenga archivos ajenos al volumen.
-- Puedes asignar un prefijo a un volumen sin prefijo en cualquier momento, incluso después de capturar imágenes. Una vez que el volumen tiene prefijo y capturas, no puedes cambiarlo ni borrarlo.
+- La raíz debe coincidir con el código de referencia del volumen en Fisqua. El backend rechaza una raíz distinta del código registrado. En **Editar volumen**, el mensaje es `La raíz tiene que coincidir con el código de referencia del volumen en Fisqua: usa "<code>" en lugar de "<stem>".` Una solicitud `PATCH` al volumen recibe `409` con `The reference code '<code>' is not the file name stem '<stem>'; a volume's reference code is its file name stem.` Una importación rechaza ese elemento con `filename_stem_differs_from_reference_code` ("The filenameStem is not the same as the referenceCode.") y continúa con el resto.
+- Debe ser única en el equipo y no coincidir con el nombre del directorio de un proyecto.
+- El backend la rechaza mientras `<projects root>/<stem>/` contenga archivos ajenos al volumen.
+- Puedes asignar en cualquier momento una raíz a un volumen que no la tiene, incluso después de capturar imágenes. Una vez que el volumen tiene raíz y capturas, no puedes cambiarla ni borrarla.
 
-En un volumen que ya tiene imágenes, el prefijo queda fijo en cuanto lo guardas. Antes de guardar, compara cada prefijo con el código de referencia del volumen en Fisqua.
+En un volumen que ya tiene imágenes, la raíz queda fija en cuanto la guardas. Antes de guardar, compara cada raíz con el código de referencia del volumen en Fisqua.
 
-Asignar un prefijo no mueve ningún archivo. El backend escribe inmediatamente las capturas nuevas de ese volumen en `<stem>/captures/`. No captures en un volumen con mapa de nombres hasta completar sus operaciones `adopt-map` y `raise-capture-counter` (5.1, 5.3): antes de ellas, el backend podría asignar a una captura un número que ya existe en el bucket.
+Asignar una raíz no mueve ningún archivo. El backend escribe inmediatamente las capturas nuevas de ese volumen en `<stem>/captures/`. No captures en un volumen con mapa de nombres hasta completar sus operaciones `adopt-map` y `raise-capture-counter` (5.1, 5.3): antes de ellas, el backend podría asignar a una captura un número que ya existe en el bucket.
 
 ### 3.2 Previsualizar el traslado, opcional {#preview-the-move-optional}
 
@@ -287,11 +289,11 @@ Repite `pg_isready` hasta que indique que el servidor acepta conexiones. El coma
 sudo systemctl restart dtk
 ```
 
-No reinicies hasta comprobar todos los prefijos. A partir de este arranque, los archivos de cada volumen con prefijo estarán en `<stem>/`, y una reversión ya no devolverá el equipo a un estado utilizable (8.3).
+No reinicies hasta comprobar todas las raíces. A partir de este arranque, los archivos de cada volumen con raíz estarán en `<stem>/`, y una reversión ya no devolverá el equipo a un estado utilizable (8.3).
 
-En cada arranque, antes de prestar servicio, el backend mueve los archivos existentes de cada volumen con prefijo desde la estructura basada en nombres a `<stem>/captures/`, `<stem>/previews/` y `<stem>/thumbnails/`. Trabaja un volumen a la vez, mediante un diario de operaciones en `/var/lib/dtk/volume-layout.journal`, y completa cualquier lote interrumpido en el siguiente arranque. Una vez que todos los volúmenes con prefijo están en su lugar, no mueve nada.
+En cada arranque, antes de prestar servicio, el backend mueve los archivos existentes de cada volumen con raíz desde la estructura basada en nombres a `<stem>/captures/`, `<stem>/previews/` y `<stem>/thumbnails/`. Trabaja un volumen a la vez, mediante un diario de operaciones en `/var/lib/dtk/volume-layout.journal`, y completa cualquier lote interrumpido en el siguiente arranque. Una vez que todos los volúmenes con raíz están en su lugar, no mueve nada.
 
-Si un volumen ya tenía prefijo antes de la actualización, el backend ya movió sus archivos cuando `update.sh` lo inició.
+Si un volumen ya tenía raíz antes de la actualización, el backend ya movió sus archivos cuando `update.sh` lo inició.
 
 ### 3.4 Leer las líneas `Volume layout:` {#read-the-volume-layout-lines}
 
@@ -299,7 +301,7 @@ Si un volumen ya tenía prefijo antes de la actualización, el backend ya movió
 journalctl -u dtk --since "15 min ago" | grep "Volume layout:"
 ```
 
-El backend solo escribe la línea de resumen cuando movió o adoptó archivos, o completó una operación pendiente. Si reinicias después de asignar prefijos a volúmenes con archivos y no aparece esa línea, revisa el resultado.
+El backend solo escribe la línea de resumen cuando movió o adoptó archivos, o completó una operación pendiente. Si reinicias después de asignar raíces a volúmenes con archivos y no aparece esa línea, revisa el resultado.
 
 | Línea | Significado |
 |---|---|
@@ -327,28 +329,28 @@ Motivos para omitir una imagen:
 | `stem_dir_occupied` | `<stem>/` contiene archivos ajenos al volumen; consulta la tabla anterior. |
 | `stem_dir_is_project_tree` | `<stem>/` es un directorio de proyecto activo. |
 | `stem_dir_outside_projects_root` | `<stem>/` apunta fuera del directorio raíz de proyectos. |
-| `no_stem` | El prefijo guardado no es válido. |
+| `no_stem` | La raíz guardada no es válida. |
 | `outside_storage`, `outside_projects_root` | La ruta de la fila está fuera del directorio raíz de proyectos activo. Los archivos cargados antes de esta estructura en `/var/lib/dtk/uploads/` permanecen allí y reciben estos motivos. |
 | `missing` | El archivo de la fila no existe y ningún archivo de `captures/` coincide con el sha256 registrado al capturar. |
 | `row_changed` | La fila cambió mientras el backend preparaba el traslado. |
 
-El registro de systemd también contiene mensajes de nivel INFO, como el de archivos liberados cuyas referencias ahora apuntan a sus nombres nuevos. Desde el backend `aa0a10a` (#134), el backend envía a stderr los mensajes INFO de sus registradores `app.*` y `capture.*`; systemd los registra con el formato `<LEVEL> <logger>: <message>` (`app/core/logging_setup.py`). `DTK_LOG_LEVEL` establece el nivel, con `INFO` como valor predeterminado.
+El registro de systemd también contiene mensajes de nivel INFO, como el de archivos liberados cuyas referencias ahora apuntan a sus nombres nuevos. Desde el backend `aa0a10a` (#134), el backend envía a stderr los mensajes INFO de sus registradores `app.*` y `capture.*`; systemd los registra con el formato `<LEVEL> <logger>: <message>` (`app/core/logging_setup.py`). `CAPTUA_LOG_LEVEL` establece el nivel, con `INFO` como valor predeterminado.
 
 ---
 
-## 4. Preparar la copia remota sin reiniciar {#provision-the-offsite-copy-without-restarting}
+## 4. Preparar la copia externa sin reiniciar {#provision-the-offsite-copy-without-restarting}
 
 ### 4.0 Crear el archivo de suspensión de cargas {#create-the-upload-hold}
 
-Mientras exista `/var/lib/dtk/offsite-hold`, el equipo no envía nada a la copia remota:
+Mientras exista `/var/lib/dtk/offsite-hold`, el equipo no envía nada a la copia externa:
 
 - El backend no sube ni enumera imágenes. Si ya hay una carga en curso, la detiene después del objeto que está procesando.
 - El backend no genera copias del catálogo.
 - El backend rechaza la liberación de un volumen de la tarjeta. La simulación de liberación y la restauración siguen disponibles.
 
-El backend comprueba la existencia del archivo al empezar cada ejecución. Crearlo o eliminarlo afecta a la siguiente ejecución sin necesidad de reiniciar. La suspensión también continúa después de reinicios por fallos, reinicios del equipo o cortes de corriente. Los comandos del paso 5 no consultan ese archivo. Solo importa que exista. Puedes cambiar su ruta con `DTK_OFFSITE_HOLD_FILE`. `GET /system/catalogue-backup` informa de él mediante `held` y `hold_file`. La suspensión también afecta al envío a Fisqua y a la consulta de su estado: ambos responden "held" al empezar, sin llamar a Fisqua ni crear un manifiesto (9.3).
+El backend comprueba la existencia del archivo al empezar cada ejecución. Crearlo o eliminarlo afecta a la siguiente ejecución sin necesidad de reiniciar. La suspensión también continúa después de reinicios por fallos, reinicios del equipo o cortes de corriente. Los comandos del paso 5 no consultan ese archivo. Solo importa que exista. Puedes cambiar su ruta con `CAPTUA_OFFSITE_HOLD_FILE`. `GET /system/catalogue-backup` informa de él mediante `held` y `hold_file`. La suspensión también afecta al envío a Fisqua y a la consulta de su estado: ambos responden "held" al empezar, sin llamar a Fisqua ni crear un manifiesto (9.3).
 
-Crea el archivo antes de preparar la copia remota, o antes del paso 2 si `offsite.env` ya registra un destino remoto y un tenant (2.5):
+Crea el archivo antes de preparar la copia externa, o antes del paso 2 si `offsite.env` ya registra un destino remoto y un tenant (2.5):
 
 ```bash
 sudo touch /var/lib/dtk/offsite-hold
@@ -379,22 +381,21 @@ READ_APP_KEY=...
 
 | Clave | Qué contiene |
 |---|---|
-| `KEY_ID`, `APP_KEY` | La clave de escritura del equipo, `captua-<unit>-write`, con `listBuckets`, `listFiles` y `writeFiles`. No tiene `readFiles` ni `deleteFiles`, así que alguien que robe el equipo no puede descargar ni borrar el archivo remoto. |
+| `KEY_ID`, `APP_KEY` | La clave de escritura del equipo, `captua-<n>-write`, con `listBuckets`, `listFiles` y `writeFiles`. No tiene `readFiles` ni `deleteFiles`, así que alguien que robe el equipo no puede descargar ni borrar el archivo remoto. |
 | `BUCKET` | El bucket del equipo; consulta la tabla siguiente. |
-| `READ_KEY_ID`, `READ_APP_KEY` | Opcionales. La clave de lectura del equipo, `captua-<unit>-read`, con `listBuckets`, `listFiles` y `readFiles`. Debe ser distinta de la clave de escritura. Sin ella, no puedes restaurar un volumen liberado. |
+| `READ_KEY_ID`, `READ_APP_KEY` | Opcionales. La clave de lectura del equipo, `captua-<n>-read`, con `listBuckets`, `listFiles` y `readFiles`. Debe ser distinta de la clave de escritura. Sin ella, no puedes restaurar un volumen liberado. |
 
-Ambas claves limitan el acceso al bucket del equipo y al prefijo de su tenant. `provision-rclone.sh` solo exige `writeFiles` y `listFiles` para la clave de escritura, y `listFiles` y `readFiles` para la de lectura. Las claves emitidas para 0.1.0 también incluyen `listBuckets`, como la clave provisional de Rionegro. Probamos cada clave de 0.1.0 desde una estación de trabajo con la herramienta `b2`: permitió la autenticación y la consulta de su prefijo de tenant, y rechazó el acceso fuera de él. Todavía no hemos usado esas claves con rclone en un equipo ni probado una clave sin `listBuckets`. Falta comprobar si rclone necesita ese permiso. El archivo tiene permisos 0600 y pertenece a `root`.
+Ambas claves limitan el acceso al bucket del equipo y al prefijo de su tenant. `provision-rclone.sh` solo exige `writeFiles` y `listFiles` para la clave de escritura, y `listFiles` y `readFiles` para la de lectura. Las claves emitidas para 0.1.0-beta también incluyen `listBuckets`, como las claves provisionales anteriores. Probamos cada clave de 0.1.0-beta desde una estación de trabajo con la herramienta `b2`: permitió la autenticación y la consulta de su prefijo de tenant, y rechazó el acceso fuera de él. Todavía no hemos usado esas claves con rclone en un equipo ni probado una clave sin `listBuckets`. Falta comprobar si rclone necesita ese permiso. El archivo tiene permisos 0600 y pertenece a `root`.
 
 Para la conexión con Fisqua, el mismo archivo contiene `FISQUA_TOKEN=<token>`, el token que Fisqua emitió para este equipo: exactamente 64 caracteres hexadecimales en minúsculas (9.2).
 
 #### Equipos y tenants {#units-and-tenants}
 
+Cada equipo tiene su propio tenant y su propio par de claves, y varios equipos pueden compartir un bucket. Quien administra el almacenamiento de la copia externa registra estos datos para cada equipo:
+
 | Equipo | Tenant (`--tenant`) | Bucket (`BUCKET`) | Claves |
 |---|---|---|---|
-| rionegro | `ahr` | `neogranadina-masters` | `captua-rionegro-write`, `captua-rionegro-read` |
-| lab | `ampl` | `ampl-masters` | `captua-lab-write`, `captua-lab-read` |
-| sbmal | `sbmal` | `ampl-masters` | `captua-sbmal-write`, `captua-sbmal-read` |
-| cobos (solo staging) | `cobos` | `ampl-masters` | `captua-cobos-write`, `captua-cobos-read` |
+| `captua-<n>` | `<tenant>` | `<bucket>` | `captua-<n>-write`, `captua-<n>-read` |
 
 Nunca incluyas un identificador de clave ni una clave de aplicación en un registro, una incidencia o esta guía.
 
@@ -403,14 +404,14 @@ Nunca pases una clave como asignación delante de `sudo`: formará parte de la l
 ### 4.2 Ejecutar el script de preparación {#run-the-provisioning-script}
 
 ```bash
-sudo DTK_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
+sudo CAPTUA_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
     /home/pi/dtk/scripts/provision-rclone.sh \
     --tenant <tenant> \
-    --dump-recipient age172wkzadqepd565chppztfw8jefpcga8s7t6eqrfhnxnv2nlfkdrqygrl3m
+    --dump-recipient <age-recipient>
 ```
 
 - `--tenant` es el prefijo de las claves de todos los objetos del equipo y su identificador en la URL de Fisqua. El script exige entre 1 y 63 caracteres: letras minúsculas, dígitos y guiones simples. Debe empezar por una letra y no terminar con un guion. Rechaza `platform`, `www`, `api`, `admin` y `app`. Para reemplazar un tenant ya registrado, también necesitas `--change-tenant`.
-- `--dump-recipient` es la clave pública de age para cifrar las copias del catálogo. La del ejemplo es el destinatario de todos los equipos. El script rechaza una clave privada. Nunca guardes la clave privada en el equipo.
+- `--dump-recipient` es la clave pública de age con la que Captua cifra las copias del catálogo: `age1` seguido de 58 caracteres. Todos los equipos usan el mismo destinatario; te lo da quien guarda la clave privada correspondiente. El script rechaza una clave privada. Nunca guardes la clave privada en el equipo.
 - `--fisqua-env production` o `--fisqua-env staging` activa la conexión con Fisqua, con `FISQUA_TOKEN` en el archivo de claves (9.2).
 - En ejecuciones posteriores que no indiquen esos valores, el script conserva el tenant, el destinatario de las copias, el entorno de Fisqua y su token. Esto incluye la ejecución de cada actualización.
 
@@ -432,7 +433,7 @@ sudo rm /root/dtk-offsite-key
 sudo sed 's/^DTK_FISQUA_TOKEN=.*/DTK_FISQUA_TOKEN=(not shown)/' /var/lib/dtk/offsite.env
 ```
 
-`sed` imprime el archivo con el token de Fisqua reemplazado para que no aparezca en pantalla. El archivo contiene `DTK_RCLONE_BIN`, `DTK_OFFSITE_REMOTE`, `DTK_OFFSITE_TENANT` y `DTK_OFFSITE_DUMP_RECIPIENT`; `DTK_OFFSITE_READ_REMOTE` si proporcionaste una clave de lectura; `DTK_RCLONE_CONFIG` si la ejecución estableció la ruta de configuración de rclone; y `DTK_FISQUA_TOKEN` y `DTK_FISQUA_ENV` si el equipo tiene conexión con Fisqua (9.2).
+`sed` imprime el archivo con el token de Fisqua reemplazado para que no aparezca en pantalla. En el archivo, las claves llevan los nombres `DTK_`. Contiene `DTK_RCLONE_BIN`, `DTK_OFFSITE_REMOTE`, `DTK_OFFSITE_TENANT` y `DTK_OFFSITE_DUMP_RECIPIENT`; `DTK_OFFSITE_READ_REMOTE` si proporcionaste una clave de lectura; `DTK_RCLONE_CONFIG` si la ejecución estableció la ruta de configuración de rclone; y `DTK_FISQUA_TOKEN` y `DTK_FISQUA_ENV` si el equipo tiene conexión con Fisqua (9.2).
 
 ### 4.4 Por qué todavía no hay cargas {#why-nothing-uploads-yet}
 
@@ -442,11 +443,11 @@ Cada comando del paso 5 es un proceso nuevo que crea su configuración al empeza
 
 Si un fallo, un reinicio o un corte de corriente reinicia el backend antes del paso 6, el proceso nuevo lee el tenant. El archivo de suspensión (4.0) impide que suba archivos en ese caso.
 
-### 4.5 Ancho de banda para la copia remota {#offsite-bandwidth}
+### 4.5 Ancho de banda para la copia externa {#offsite-bandwidth}
 
-El backend aplica un único límite de ancho de banda a las cargas de imágenes, las cargas de copias del catálogo y la restauración de archivos liberados: `DTK_OFFSITE_BWLIMIT`, que pasa a rclone como `--bwlimit`. No limita las consultas del bucket ni las llamadas a Fisqua. El valor predeterminado es `750k`, aproximadamente 750 KB/s; falta comprobar la unidad que interpreta rclone. Ese es el valor que ha usado el equipo de Rionegro con su conexión de unos 12 Mbit/s. Para otro lugar, mide la velocidad de subida en Mbit/s, divide entre 8 para obtener MB/s y usa aproximadamente la mitad. El equipo de pruebas usó el valor predeterminado hasta la ejecución `cobos-bench-005` (9.3). Después lo configuramos en `1.5M`, a partir de una conexión doméstica de unos 25 Mbit/s medida el 25 de octubre de 2026.
+El backend aplica un único límite de ancho de banda a las cargas de imágenes, las cargas de copias del catálogo y la restauración de archivos liberados: `CAPTUA_OFFSITE_BWLIMIT`, que pasa a rclone como `--bwlimit`. No limita las consultas del bucket ni las llamadas a Fisqua. El valor predeterminado es `750k`, aproximadamente 750 KB/s; falta comprobar la unidad que interpreta rclone. Ese valor ya funciona en un equipo con una conexión de unos 12 Mbit/s. Para otro lugar, mide la velocidad de subida en Mbit/s, divide entre 8 para obtener MB/s y usa aproximadamente la mitad: una conexión de unos 25 Mbit/s da unos 3 MB/s, y la mitad es `1.5M`.
 
-Configúralo en `/home/pi/dtk/.env`; `provision-rclone.sh` no escribe ese valor:
+Configúralo en `/home/pi/dtk/.env`, con el nombre `DTK_`, como las demás variables de los archivos del equipo; `provision-rclone.sh` no escribe ese valor:
 
 ```bash
 DTK_OFFSITE_BWLIMIT=1.5M
@@ -501,9 +502,9 @@ El comando rechaza todo el mapa, muestra `error: <reason>` y no escribe nada cua
 - los valores de `contract`, `version` o `kind` no son, respectivamente, `fisqua-captua-exchange`, `1.1` y `rename-map`;
 - falta el objeto `volume` o `destination`, o `entries` no es una lista;
 - ningún volumen del equipo coincide tanto con `volume.captuaCollectionId` como con `volume.stem` del mapa;
-- `DTK_OFFSITE_REMOTE` no tiene un valor definido, no tiene el formato `<remote>:<bucket>` o su bucket no coincide con `destination.bucket`;
+- `CAPTUA_OFFSITE_REMOTE` no tiene un valor definido, no tiene el formato `<remote>:<bucket>` o su bucket no coincide con `destination.bucket`;
 - `destination.root` no es un prefijo de clave;
-- `DTK_OFFSITE_TENANT` no tiene un valor definido, tiene un valor inválido o no coincide con el primer segmento de `destination.root`;
+- `CAPTUA_OFFSITE_TENANT` no tiene un valor definido, tiene un valor inválido o no coincide con el primer segmento de `destination.root`;
 - la solicitud para listar el bucket no obtiene respuesta.
 
 Lee `refused` y `refused_counts` en la simulación. Resuelve cada entrada rechazada cuya imagen todavía esté en la tarjeta antes de que el backend empiece a subir archivos en el paso 6: de lo contrario, el componente de carga subiría ese archivo con una segunda clave, su nombre en el disco. Aplica todos los mapas antes del paso 5.2 para que `adopt` no registre una clave a la que un mapa da otro nombre.
@@ -515,7 +516,7 @@ pixi run python -m app.core.image_upload adopt <prefix>
 pixi run python -m app.core.image_upload adopt <prefix> --apply
 ```
 
-`<prefix>` es relativo a `DTK_OFFSITE_REMOTE`. El comando lista ese prefijo, calcula el hash de cada imagen que aún no tiene clave y pertenece a un volumen con prefijo de nombre de archivo, y registra un objeto de la lista como clave de la imagen cuando exactamente un objeto tiene el mismo SHA1. El comando informa de las coincidencias ambiguas y las claves que ya tienen asignación, sin registrarlas. Solo busca coincidencias para archivos que todavía están en la tarjeta.
+`<prefix>` es relativo a `CAPTUA_OFFSITE_REMOTE`. El comando lista ese prefijo, calcula el hash de cada imagen que aún no tiene clave y pertenece a un volumen con raíz, y registra un objeto de la lista como clave de la imagen cuando exactamente un objeto tiene el mismo SHA1. El comando informa de las coincidencias ambiguas y las claves que ya tienen asignación, sin registrarlas. Solo busca coincidencias para archivos que todavía están en la tarjeta.
 
 El comando no comprueba el tenant, pero debes darle un prefijo dentro del tenant (`<tenant>/...`). Al liberar espacio, el backend lista el directorio de cada clave y no lista nada fuera del prefijo del tenant. Por eso nunca puedes liberar un volumen con una clave adoptada fuera de ese prefijo.
 
@@ -564,7 +565,7 @@ El comando registra el sha256 de cada vista previa RAW capturada antes de que el
 sudo systemctl restart dtk
 ```
 
-El backend ahora lee el tenant e inicia las dos tareas programadas. Ejecuta cada una por primera vez `DTK_OFFSITE_BACKUP_DELAY` segundos después del inicio (300 de forma predeterminada), y de nuevo `DTK_OFFSITE_BACKUP_INTERVAL` segundos después de que termine cada ejecución (1800 de forma predeterminada).
+El backend ahora lee el tenant e inicia las dos tareas programadas. Desde la versión siguiente a 0.2.0, estas tareas no envían nada hasta que el modo del equipo lo permita (6.2a). El backend ejecuta cada una por primera vez `CAPTUA_OFFSITE_BACKUP_DELAY` segundos después del inicio (300 de forma predeterminada), y de nuevo `CAPTUA_OFFSITE_BACKUP_INTERVAL` segundos después de que termine cada ejecución (1800 de forma predeterminada).
 
 ### 6.2 Retirar la suspensión {#remove-the-hold}
 
@@ -576,10 +577,27 @@ sudo rm /var/lib/dtk/offsite-hold
 
 El backend empieza a subir archivos en la siguiente ejecución programada, sin necesidad de reiniciarlo.
 
+### 6.2a Fijar el modo del equipo (desde la versión siguiente a 0.2.0) {#set-the-units-mode}
+
+Este paso corresponde a la versión siguiente a 0.2.0 y a las posteriores. La versión 0.2.0 no tiene modo del equipo.
+
+Desde esa versión, cada equipo funciona en uno de tres modos: "Solo en el escáner", en el que nada sale del equipo; "Solo copia externa", en el que Captua copia las imágenes y el catálogo al bucket; y "Fisqua", que añade la conexión con Fisqua. El backend fija el modo una sola vez, en el primer arranque de esa versión, según lo que esté configurado en ese momento: "Fisqua" si la conexión con Fisqua está configurada, "Solo copia externa" si lo está la copia externa, y "Solo en el escáner" en cualquier otro caso. En esta guía, el arranque de la actualización (2.2) ocurre antes de que prepares la copia externa (paso 4). Por eso, en la mayoría de los equipos, el backend fija "Solo en el escáner", y el equipo sigue en ese modo después del reinicio de 6.1: el backend no sube nada ni envía nada a Fisqua. Si el `offsite.env` del equipo ya registra un destino remoto y un tenant (2.5), en ese arranque el backend fija "Solo copia externa", o "Fisqua" si la conexión con Fisqua está configurada; en ese caso, solo el archivo de suspensión (4.0) impide las cargas. El backend también fija "Solo en el escáner" en un equipo nuevo o en una tarjeta que arrancaste antes de preparar su copia externa.
+
+Después de 6.2, abre **Configuración** con una cuenta de administrador y, en **Modo del equipo**, elige "Solo copia externa" o "Fisqua". Captua rechaza el cambio, e indica qué falta, en cualquiera de estos casos:
+
+- no está configurada la copia externa de las imágenes o la del catálogo (con su destinatario de age)
+- solo para pasar a "Fisqua": no está configurada la conexión con Fisqua, existe el archivo de suspensión de cargas, Captua no logra comunicarse con Fisqua, o Fisqua no acepta el cambio
+
+Antes de pasar a "Fisqua", Captua le comunica el cambio a Fisqua.
+
+Captua guarda solo en el equipo todos los volúmenes creados en el modo "Solo en el escáner": no sube sus imágenes a la copia externa ni envía sus manifiestos a Fisqua. Cuando cambias el equipo de "Solo en el escáner" a otro modo y hay volúmenes de ese tipo, elige en **Volúmenes que Captua guarda solo en este equipo** entre **Incluirlos** y **Seguir guardándolos aquí**. Captua no cambia el modo hasta que elijas.
+
+Con el modo ya fijado, la comprobación de 6.3 también exige que `mode_allows` e `images.mode_allows` tengan el valor `true` y, en un equipo con conexión con Fisqua, `fisqua.mode_allows` también.
+
 ### 6.3 Comprobar {#check}
 
-- **El indicador de recepción de cada volumen.** En la página del volumen, la línea de copia remota muestra `Uploading: N of M files verified, P pending` durante la carga, y `Stored offsite: N of N files verified` cuando el backend ha verificado todos los objetos. `N files need attention` indica que el backend rechazó objetos: el bucket contiene un archivo diferente en esa clave (`remote_differs`), o el sha256 del archivo no coincide con el de su registro de captura (`fixity`). El backend no vuelve a intentar la carga de un objeto rechazado. `GET /collections/{id}/offsite` devuelve los mismos recuentos.
-- **El estado de la copia remota del equipo.** La sección **Offsite copy** de la página de configuración y el indicador de la página de resumen consultan `GET /system/catalogue-backup`. Desde el equipo:
+- **El indicador de recepción de cada volumen.** En la página del volumen, la línea de copia externa muestra `Copia externa en curso: N de M archivos verificados, P pendientes` durante la carga, y `Copia externa completa: N de N archivos verificados` cuando el backend ha verificado todos los objetos. `N archivos requieren atención` indica que el backend rechazó objetos: el bucket contiene un archivo diferente en esa clave (`remote_differs`), o el sha256 del archivo no coincide con el de su registro de captura (`fixity`). El backend no vuelve a intentar la carga de un objeto rechazado. `GET /collections/{id}/offsite` devuelve los mismos recuentos.
+- **El estado de la copia externa del equipo.** La sección **Copia externa** de la página **Configuración** y el indicador de la página **Resumen** consultan `GET /system/catalogue-backup`. Desde el equipo:
 
   ```bash
   read -rs -p "Password: " PW; echo
@@ -592,13 +610,13 @@ El backend empieza a subir archivos en la siguiente ejecución programada, sin n
 
   `read -rs` evita que la contraseña aparezca en la pantalla y en el historial del shell. El cuerpo de la solicitud pasa por una tubería, así que la contraseña nunca aparece en una línea de comandos.
 
-  `held` tiene el valor `false`; `enabled` e `images.enabled` tienen el valor `true`; `images.misconfigured` tiene el valor `null`; el backend completa `last_verified_at` después de verificar la primera copia de la base de datos. Esta respuesta no indica si falta el destinatario de cifrado de esa copia o si es inválido: `enabled` conserva el valor `true` y `last_verified_at` no avanza, y cada ejecución escribe `catalogue_backup_failed` en el registro del sistema.
+  `held` tiene el valor `false`; `enabled` e `images.enabled` tienen el valor `true`; desde la versión siguiente a 0.2.0, también `mode_allows` e `images.mode_allows` (6.2a); `images.misconfigured` tiene el valor `null`; el backend completa `last_verified_at` después de verificar la primera copia de la base de datos. Esta respuesta no indica si falta el destinatario de cifrado de esa copia o si es inválido: `enabled` conserva el valor `true` y `last_verified_at` no avanza, y cada ejecución escribe `catalogue_backup_failed` en el registro del sistema.
 
 ### 6.4 Liberar primero un solo volumen {#free-one-volume-first}
 
-No liberes nada hasta que el backend haya verificado una copia del catálogo: `last_verified_at` en 6.3 debe tener un valor distinto de `null`. Después elige un volumen cuya línea de copia remota muestre `Stored offsite`. Con una cuenta de administrador, ábrelo, elige **Space on the SD card** y luego **Free space on the SD card**. Captua primero solicita al backend la simulación (`GET /collections/{id}/offsite/free`) y enumera en el cuadro de diálogo lo que liberaría y cada archivo que dejaría en la tarjeta, con el motivo. La simulación no modifica nada. Confirma con **Free space** solo cuando esa lista corresponda a lo que esperas.
+No liberes nada hasta que el backend haya verificado una copia del catálogo: `last_verified_at` en 6.3 debe tener un valor distinto de `null`. Después elige un volumen cuya línea de copia externa muestre `Copia externa completa`. Con una cuenta de administrador, ábrelo, elige **Espacio en la tarjeta** y luego **Liberar espacio en la tarjeta**. Captua primero solicita al backend la simulación (`GET /collections/{id}/offsite/free`) y enumera en el cuadro de diálogo lo que liberaría y cada archivo que dejaría en la tarjeta, con el motivo. La simulación no modifica nada. Confirma con **Liberar espacio** solo cuando esa lista corresponda a lo que esperas.
 
-Antes de retirar cualquier archivo, el backend vuelve a calcular el SHA1 de cada uno y después vuelve a listar el bucket, una vez por cada directorio de clave. El backend deja en la tarjeta cualquier archivo que falle una de las dos comprobaciones y lo incluye en la lista con un motivo. Las miniaturas permanecen, así que puedes seguir explorando el volumen. Un administrador puede recuperar un archivo liberado con **Restore to the SD card**; para ello necesita la clave de lectura de 4.1.
+Antes de retirar cualquier archivo, el backend vuelve a calcular el SHA1 de cada uno y después vuelve a listar el bucket, una vez por cada directorio de clave. El backend deja en la tarjeta cualquier archivo que falle una de las dos comprobaciones y lo incluye en la lista con un motivo. Las miniaturas permanecen, así que puedes seguir explorando el volumen. Un administrador puede recuperar un archivo liberado con **Restaurar en la tarjeta**; para ello necesita la clave de lectura de 4.1.
 
 ---
 
@@ -613,7 +631,7 @@ Antes de retirar cualquier archivo, el backend vuelve a calcular el SHA1 de cada
 
 Para reinstalar el entorno anterior de pixi, el equipo necesita acceso al registro de conda si la actualización cambió `pixi.lock`, salvo que la caché de pixi todavía contenga todos los paquetes. El script avisa cuando no puede reinstalarlo.
 
-Después de una restauración, la rama local apunta al commit anterior y los submódulos tienen las revisiones fijadas por ese commit. En la instalación de 0.1.0, esto deja `main` apuntando al commit que el equipo usaba antes. Antes de volver a intentarlo, haz que apunte otra vez a `origin/main` y selecciona las revisiones de los submódulos que fija ese commit, porque `update.sh --no-pull` no las sincroniza:
+Después de una restauración, la rama local apunta al commit anterior y los submódulos tienen las revisiones fijadas por ese commit. En la instalación de 0.1.0-beta, esto deja `main` apuntando al commit que el equipo usaba antes. Antes de volver a intentarlo, haz que apunte otra vez a `origin/main` y selecciona las revisiones de los submódulos que fija ese commit, porque `update.sh --no-pull` no las sincroniza:
 
 ```bash
 git -C /home/pi/dtk checkout -B main origin/main
@@ -623,9 +641,9 @@ git -C /home/pi/dtk submodule status
 
 Cada línea de `submodule status` debe empezar con un espacio. Después comprueba el árbol de trabajo como indica 2.1 antes de ejecutar otra vez el paso 2.2.
 
-### 7.2 Una instalación fallida de 0.1.0 {#a-failed-0.1.0-install}
+### 7.2 Una instalación fallida de 0.1.0-beta {#a-failed-0.1.0-install}
 
-`update.sh` puede dejar un registro sin resolver (7.3) aunque el disco ya tenga el código anterior: cuando no pudo restaurar la base de datos, rechazó la restauración o solo restauró parte del código. Si el `update.sh` del disco es anterior al mecanismo de ese registro, como ocurre con la versión anterior a 0.1.0, no rechazaría la ejecución. En ese caso, y solo en ese caso, el script muestra `DO NOT RUN scripts/update.sh ON THIS UNIT UNTIL THE ROLLBACK HAS SUCCEEDED`. Ejecuta únicamente el comando de reversión registrado, mediante `systemd-run` como indica 7.3.
+`update.sh` puede dejar un registro sin resolver (7.3) aunque el disco ya tenga el código anterior: cuando no pudo restaurar la base de datos, rechazó la restauración o solo restauró parte del código. Si el `update.sh` del disco es anterior al mecanismo de ese registro, como ocurre con la versión anterior a 0.1.0-beta, no rechazaría la ejecución. En ese caso, y solo en ese caso, el script muestra `DO NOT RUN scripts/update.sh ON THIS UNIT UNTIL THE ROLLBACK HAS SUCCEEDED`. Ejecuta únicamente el comando de reversión registrado, mediante `systemd-run` como indica 7.3.
 
 ### 7.3 El registro sin resolver {#the-unresolved-record}
 
@@ -641,7 +659,7 @@ sudo cat /var/lib/dtk/backups/unresolved-deployment
 
 | `kind` | Qué ocurrió | Qué debes hacer |
 |---|---|---|
-| `started-failed` | `update.sh` inició la versión nueva y después falló. El código corresponde a la versión nueva y la base de datos tiene las migraciones para ella. | Ejecuta el comando de reversión registrado, que devuelve el código y la base de datos a la versión anterior y descarta todo lo escrito después de la copia, o, cuando hayas corregido la causa, ejecuta `update.sh --resolve-forward` (7.4). En la primera instalación de 0.1.0, una vez que el backend ha movido archivos a `<stem>/captures/`, la comprobación de prefijos de nombre de archivo rechaza la reversión (8.0a); usa `--resolve-forward`. |
+| `started-failed` | `update.sh` inició la versión nueva y después falló. El código corresponde a la versión nueva y la base de datos tiene las migraciones para ella. | Ejecuta el comando de reversión registrado, que devuelve el código y la base de datos a la versión anterior y descarta todo lo escrito después de la copia, o, cuando hayas corregido la causa, ejecuta `update.sh --resolve-forward` (7.4). En la primera instalación de 0.1.0-beta, una vez que el backend ha movido archivos a `<stem>/captures/`, la comprobación de raíces rechaza la reversión (8.0a); usa `--resolve-forward`. |
 | `migrated-not-restored` | `update.sh` falló después del inicio de la migración y no restauró el código anterior, o solo restauró una parte. La base de datos puede tener una migración completa o parcial. | Ejecuta el comando de reversión registrado después de resolver lo que impidió restaurar el código; o usa `--resolve-forward` si el código corresponde exactamente al commit fallido y la base de datos está en la última revisión de migraciones de ese código. |
 | `restore-failed` | El script eliminó la base de datos para restaurarla, y la carga de la copia falló o sufrió una interrupción. La base de datos puede estar vacía o parcialmente restaurada. Una reversión interrumpida después de eliminar la base de datos también escribe este tipo de registro. | Ejecuta únicamente el comando de reversión registrado. `--resolve-forward` rechaza este tipo. |
 | `restore-refused` | `update.sh` falló después de la migración y rechazó la restauración antes de eliminar nada (había un backend en ejecución o el script no pudo instalar la protección de inicio). El código ya corresponde al commit anterior; la base de datos conserva el estado que dejó la migración. | Ejecuta únicamente el comando de reversión registrado. `--resolve-forward` rechaza este tipo. |
@@ -709,13 +727,13 @@ sudo systemd-run --unit=dtk-rollback --collect \
 
 En el primer inicio después de una reversión, `start.sh` ejecuta `pixi run start`, que puede reinstalar el entorno de pixi para el archivo de bloqueo restaurado; esto necesita conexión a la red.
 
-### 8.0a La comprobación de prefijos de nombre de archivo {#a-the-stem-guard}
+### 8.0a La comprobación de raíces {#a-the-stem-guard}
 
 Antes de cambiar nada, el script comprueba si el catálogo restaurado apuntaría a archivos ausentes:
 
-- Lee todas las rutas de imágenes de la copia y busca cada archivo en el disco. Resuelve una ruta relativa a partir de `/home/pi/dtk/backend`, igual que el backend. No cuenta un archivo maestro cuyo espacio ya liberaste gracias a la copia remota. Cualquier volumen con una imagen ausente está en riesgo.
-- Consulta en la base de datos actual los volúmenes con prefijo de nombre de archivo y solo cuenta aquellos cuyo directorio con ese prefijo existe. Busca bajo la raíz de proyectos que indica `/var/lib/dtk/storage-override.json` y bajo la raíz predeterminada (`PROJECTS_ROOT`, o `<DTK_DATA_DIR>/projects`); resuelve una raíz relativa a partir de `/home/pi/dtk/backend`, igual que el backend. Un volumen con un directorio de prefijo que no figura en la copia está en riesgo: desaparecería del catálogo y sus archivos quedarían en el directorio.
-- Si el script no puede leer las filas de imágenes o registros de la copia, incluye en la lista todos los volúmenes con un directorio de prefijo, y el mensaje aclara que algunos pueden estar a salvo.
+- Lee todas las rutas de imágenes de la copia y busca cada archivo en el disco. Resuelve una ruta relativa a partir de `/home/pi/dtk/backend`, igual que el backend. No cuenta un archivo maestro cuyo espacio ya liberaste gracias a la copia externa. Cualquier volumen con una imagen ausente está en riesgo.
+- Consulta en la base de datos actual los volúmenes con raíz y solo cuenta aquellos cuyo directorio de raíz existe. Busca bajo el directorio raíz de proyectos que indica `/var/lib/dtk/storage-override.json` y bajo el predeterminado (`PROJECTS_ROOT`, o `<CAPTUA_DATA_DIR>/projects`); resuelve un directorio relativo a partir de `/home/pi/dtk/backend`, igual que el backend. Un volumen con un directorio de raíz que no figura en la copia está en riesgo: desaparecería del catálogo y sus archivos quedarían en el directorio.
+- Si el script no puede leer las filas de imágenes o registros de la copia, incluye en la lista todos los volúmenes con un directorio de raíz, y el mensaje aclara que algunos pueden estar a salvo.
 
 Si algún volumen está en riesgo, el script rechaza la ejecución sin cambiar nada y escribe la lista en `/var/lib/dtk/backups/rollback-stems-at-risk`, que pertenece a root y tiene permisos 0600. El archivo empieza con líneas de encabezado `#` (la copia, si aceptaste la pérdida y cómo comprobó el script la copia), seguidas de una tabla separada por tabulaciones con las columnas `id`, `name`, `filename_stem`, `images_missing`, `images_total` y `example`. El mensaje empieza así:
 
@@ -732,11 +750,11 @@ Y termina así:
 
 Con `--accept-lost-stems`, el script continúa, registra `accepted: yes` en la lista y añade `lost-stems-accepted:` con la ruta de la lista al registro que escribe antes de eliminar la base de datos.
 
-El propio script inicia el contenedor de la base de datos si no está en funcionamiento. Rechaza la ejecución si ese inicio falla o si falla una consulta: `✗ Could not check the current database for volumes with a stem directory`. Restablece el acceso a la base de datos y vuelve a ejecutarlo: inicia `dtk` o, si el indicador de actualización sin resolver impide iniciar `dtk`, inicia solo el contenedor de la base de datos (`sudo docker compose -f /home/pi/dtk/docker-compose.yml -f /home/pi/dtk/docker-compose.pi.yml up -d db`). Hay tres estados que no causan rechazo: una base de datos inexistente, como la que deja una restauración interrumpida, no contiene ningún volumen; una base de datos sin tabla de volúmenes tampoco contiene ninguno; y un esquema anterior a los prefijos de nombre de archivo no tiene directorios de prefijo. En los tres casos, el script sigue comprobando las imágenes de la propia copia.
+El propio script inicia el contenedor de la base de datos si no está en funcionamiento. Rechaza la ejecución si ese inicio falla o si falla una consulta: `✗ Could not check the current database for volumes with a stem directory`. Restablece el acceso a la base de datos y vuelve a ejecutarlo: inicia `dtk` o, si el indicador de actualización sin resolver impide iniciar `dtk`, inicia solo el contenedor de la base de datos (`sudo docker compose -f /home/pi/dtk/docker-compose.yml -f /home/pi/dtk/docker-compose.pi.yml up -d db`). Hay tres estados que no causan rechazo: una base de datos inexistente, como la que deja una restauración interrumpida, no contiene ningún volumen; una base de datos sin tabla de volúmenes tampoco contiene ninguno; y un esquema anterior a las raíces no tiene directorios de raíz. En los tres casos, el script sigue comprobando las imágenes de la propia copia.
 
-**La primera instalación de 0.1.0.** Cuando 0.1.0 ya ha arrancado y ha movido archivos a `<stem>/captures/` (3.3 y, para volúmenes que ya tenían prefijo, el inicio al final de `update.sh`), la copia anterior a la actualización indica las rutas antiguas de esos archivos. Una reversión a esa copia dejaría los volúmenes sin acceso a sus archivos, así que la comprobación rechaza la ejecución. Después de una actualización fallida con un registro de tipo `started-failed`, usa `update.sh --resolve-forward` (7.4) en lugar de una reversión. Un registro de tipo `migrated-not-restored` significa que la versión nueva nunca arrancó, así que no movió ningún archivo. Después de una actualización exitosa, instala una versión corregida mediante una actualización habitual.
+**La primera instalación de 0.1.0-beta.** Cuando 0.1.0-beta ya ha arrancado y ha movido archivos a `<stem>/captures/` (3.3 y, para volúmenes que ya tenían raíz, el inicio al final de `update.sh`), la copia anterior a la actualización indica las rutas antiguas de esos archivos. Una reversión a esa copia dejaría los volúmenes sin acceso a sus archivos, así que la comprobación rechaza la ejecución. Después de una actualización fallida con un registro de tipo `started-failed`, usa `update.sh --resolve-forward` (7.4) en lugar de una reversión. Un registro de tipo `migrated-not-restored` significa que la versión nueva nunca arrancó, así que no movió ningún archivo. Después de una actualización exitosa, instala una versión corregida mediante una actualización habitual.
 
-Todavía no existe ningún comando para recuperar un volumen después de aceptar su pérdida. Tenemos previsto un comando `restore-stem` para después de 0.1.0.
+Todavía no existe ningún comando para recuperar un volumen después de aceptar su pérdida. Tenemos previsto un comando `restore-stem` para después de 0.1.0-beta.
 
 ### 8.1 Qué restaura {#what-it-restores}
 
@@ -757,19 +775,19 @@ sudo mv /var/lib/dtk/offsite.env /var/lib/dtk/offsite.env.aside
 
 ### 8.2 Qué pierde {#what-it-loses}
 
-Todo lo escrito en la base de datos después de la copia: capturas (sus archivos permanecen en la tarjeta, pero ninguna fila los referencia), prefijos de nombre de archivo asignados en el paso 3, claves registradas por `adopt-map` y `adopt` en el paso 5, aumentos del contador, cargas registradas en el paso 6 y el estado de los archivos liberados.
+Todo lo escrito en la base de datos después de la copia: capturas (sus archivos permanecen en la tarjeta, pero ninguna fila los referencia), raíces asignadas en el paso 3, claves registradas por `adopt-map` y `adopt` en el paso 5, aumentos del contador, cargas registradas en el paso 6 y el estado de los archivos liberados.
 
 Nunca vuelvas a una versión anterior después de liberar un volumen. Los archivos liberados ya no están en la tarjeta, la base de datos restaurada los indica como presentes y ya no contiene los registros que permitirían a un administrador recuperarlos desde el bucket.
 
 ### 8.3 Cuándo es seguro {#when-it-is-safe}
 
-El momento más sencillo es antes del paso 3. Hasta entonces, el backend solo ha movido archivos de volúmenes que tenían prefijo de nombre de archivo antes de la actualización; en un equipo donde ningún volumen tenía prefijo, no ha movido nada.
+El momento más sencillo es antes del paso 3. Hasta entonces, el backend solo ha movido archivos de volúmenes que tenían raíz antes de la actualización; en un equipo donde ningún volumen tenía raíz, no ha movido nada.
 
-No vuelvas a una versión anterior después del reinicio de 3.3. A partir de ese momento, los archivos de cada volumen al que asignaste un prefijo están en `<stem>/` y las filas restauradas indican sus rutas antiguas. La versión anterior no puede encontrar los archivos trasladados y ningún proceso los devuelve a su lugar. La comprobación de prefijos de nombre de archivo (8.0a) rechaza una reversión de ese tipo.
+No vuelvas a una versión anterior después del reinicio de 3.3. A partir de ese momento, los archivos de cada volumen al que asignaste una raíz están en `<stem>/` y las filas restauradas indican sus rutas antiguas. La versión anterior no puede encontrar los archivos trasladados y ningún proceso los devuelve a su lugar. La comprobación de raíces (8.0a) rechaza una reversión de ese tipo.
 
 ### 8.4 La próxima actualización {#the-next-update}
 
-La reversión escribe el commit restaurado en `last-deployed-SHA` y mueve la rama local a ese commit. El `update.sh` del disco corresponde entonces a la versión restaurada, no a 0.1.0, así que la próxima actualización repite la instalación de 0.1.0:
+La reversión escribe el commit restaurado en `last-deployed-SHA` y mueve la rama local a ese commit. El `update.sh` del disco corresponde entonces a la versión restaurada, no a 0.1.0-beta, así que la próxima actualización repite la instalación de 0.1.0-beta:
 
 1. 2.1: devuelve `main` a `origin/main` (`git -C /home/pi/dtk checkout -B main origin/main`), sincroniza los submódulos y comprueba el árbol de trabajo.
 2. Si apartaste `offsite.env` (8.1), crea la suspensión y devuelve `offsite.env` a su lugar:
@@ -783,10 +801,10 @@ La reversión escribe el commit restaurado en `last-deployed-SHA` y mueve la ram
 3. 2.2, con `--no-pull`.
 4. Repite los pasos 3 a 6: la reversión descartó todo lo escrito después de la copia (8.2).
 
-Cuando vuelves a actualizar el equipo a 0.1.0, el backend mueve archivos al arrancar:
+Cuando vuelves a actualizar el equipo a 0.1.0-beta, el backend mueve archivos al arrancar:
 
-- Para un volumen cuyo prefijo de nombre de archivo figura en la base de datos restaurada, el backend hace que una fila cuya ruta antigua ya no existe apunte al archivo del mismo nombre en `<stem>/captures/` si el sha256 del archivo coincide con la suma de comprobación registrada durante la captura. Informa de un archivo sin esa suma de comprobación como `missing`.
-- La comprobación de prefijos de nombre de archivo (8.0a) rechaza una reversión que dejaría un volumen sin acceso a sus archivos. Después de aceptar una reversión con `--accept-lost-stems`, el backend rechaza una nueva asignación de un prefijo perdido mientras `<stem>/` contenga archivos que ninguna fila del volumen referencia. Todavía no existe ningún comando para recuperar un volumen después de aceptar su pérdida; tenemos previsto `restore-stem` para después de 0.1.0.
+- Para un volumen cuya raíz figura en la base de datos restaurada, el backend hace que una fila cuya ruta antigua ya no existe apunte al archivo del mismo nombre en `<stem>/captures/` si el sha256 del archivo coincide con la suma de comprobación registrada durante la captura. Informa de un archivo sin esa suma de comprobación como `missing`.
+- La comprobación de raíces (8.0a) rechaza una reversión que dejaría un volumen sin acceso a sus archivos. Después de aceptar una reversión con `--accept-lost-stems`, el backend rechaza una nueva asignación de una raíz perdida mientras `<stem>/` contenga archivos que ninguna fila del volumen referencia. Todavía no existe ningún comando para recuperar un volumen después de aceptar su pérdida; tenemos previsto `restore-stem` para después de 0.1.0-beta.
 
 ---
 
@@ -797,17 +815,19 @@ Cuando vuelves a actualizar el equipo a 0.1.0, el backend mueve archivos al arra
 
 El backend envía a Fisqua el manifiesto de captura de cada volumen enviado a revisión y consulta a Fisqua el estado del volumen cuando la configuración cumple las tres condiciones siguientes:
 
-- `DTK_FISQUA_ENV` tiene el valor `production` o `staging`. Producción llama a `https://<tenant>.fisqua.org`; staging llama a `https://<tenant>.staging.fisqua.org`.
-- `DTK_FISQUA_TOKEN` contiene 64 caracteres hexadecimales en minúsculas.
-- `DTK_OFFSITE_TENANT` contiene un tenant válido.
+- `CAPTUA_FISQUA_ENV` tiene el valor `production` o `staging`. Producción llama a `https://<tenant>.fisqua.org`; staging llama a `https://<tenant>.staging.fisqua.org`.
+- `CAPTUA_FISQUA_TOKEN` contiene 64 caracteres hexadecimales en minúsculas.
+- `CAPTUA_OFFSITE_TENANT` contiene un tenant válido.
 
 De lo contrario, el backend no pone nada en cola ni envía nada, y al arrancar escribe en el registro `INFO app.core.fisqua_outbox: Fisqua is not configured; no status poll started`.
 
-El backend solo envía manifiestos cuando `DTK_OFFSITE_REMOTE` también tiene un valor definido: el ciclo de envío forma parte de la tarea programada de carga de imágenes, que el backend solo inicia si tiene un destino remoto y un tenant válido. Con tenant pero sin destino remoto, el backend pone manifiestos en cola y nunca los envía.
+El backend solo envía manifiestos cuando `CAPTUA_OFFSITE_REMOTE` también tiene un valor definido: el ciclo de envío forma parte de la tarea programada de carga de imágenes, que el backend solo inicia si tiene un destino remoto y un tenant válido. Con tenant pero sin destino remoto, el backend pone manifiestos en cola y nunca los envía.
+
+Desde la versión siguiente a 0.2.0, el enlace solo funciona mientras el equipo está en modo "Fisqua" (6.2a). En cualquier otro modo, el backend no envía nada a Fisqua ni le consulta el estado de los volúmenes.
 
 El backend lee esta configuración al arrancar. Durante una actualización, define los valores antes del paso 6 y el reinicio de 6.1 los aplica; fuera de una actualización, aplica cualquier cambio con `sudo systemctl restart dtk`. Todas las llamadas usan HTTPS y el token del equipo. El backend nunca escribe el token en los registros, lo almacena ni lo devuelve; en el equipo, `offsite.env` lo contiene, y el archivo de claves también lo contiene hasta que lo elimines.
 
-El número de versión está en el archivo `VERSION` de la raíz del repositorio (`0.1.0`). El backend lo envía en cada manifiesto como `systemVersion`: `0.1.0` cuando el repositorio tiene seleccionado el commit con la etiqueta `0.1.0`; en cualquier otro caso, `0.1.0+g<first 12 characters of the backend commit>`. El backend lee la etiqueta de los archivos de Git del superproyecto sin ejecutar git: si solo puede encontrar una etiqueta dentro de un archivo pack, o en `packed-refs` sin la línea que resuelve por completo el destino de la etiqueta, considera que no hay etiqueta y la versión incluye `+g…` incluso en el commit etiquetado (compruébalo en el equipo de pruebas cuando exista la etiqueta).
+El número de versión está en el archivo `VERSION` de la raíz del repositorio (`0.2.0` en la versión actual). El backend lo envía en cada manifiesto como `systemVersion`: `<release>` cuando el repositorio tiene seleccionado el commit con la etiqueta `<release>`; en cualquier otro caso, `<release>+g<first 12 characters of the backend commit>`. El backend lee la etiqueta de los archivos de Git del superproyecto sin ejecutar git: si solo puede encontrar una etiqueta dentro de un archivo pack, o en `packed-refs` sin la línea que resuelve por completo el destino de la etiqueta, considera que no hay etiqueta y la versión incluye `+g…` incluso en el commit etiquetado (compruébalo en un equipo de pruebas).
 
 ### 9.2 Preparar la configuración {#provisioning}
 
@@ -818,10 +838,10 @@ FISQUA_TOKEN=<64 lowercase hexadecimal characters>
 ```
 
 ```bash
-sudo DTK_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
+sudo CAPTUA_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
     /home/pi/dtk/scripts/provision-rclone.sh \
     --tenant <tenant> \
-    --dump-recipient age172wkzadqepd565chppztfw8jefpcga8s7t6eqrfhnxnv2nlfkdrqygrl3m \
+    --dump-recipient <age-recipient> \
     --fisqua-env production
 ```
 
@@ -829,7 +849,7 @@ sudo DTK_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
 - El script lee el token exclusivamente del archivo de claves, rechaza cualquier token que no tenga 64 caracteres hexadecimales en minúsculas sin mostrarlo y lo rechaza cuando no indicas un tenant o un entorno y tampoco hay uno registrado.
 - Escribe `DTK_FISQUA_TOKEN` y `DTK_FISQUA_ENV` en `offsite.env`. Conserva ambos valores en las ejecuciones posteriores en las que no los indiques. Si cambias cualquiera de los dos, aplica el cambio y muestra una nota.
 - Con `--advisory`, como lo ejecuta `update.sh`, el script no toma el token.
-- El script no hace ninguna llamada a Fisqua. El backend detecta un token incorrecto en la primera llamada: Fisqua responde `401` y el backend detiene los envíos y las consultas de estado (9.4). El backend solo hace su primera llamada a Fisqua cuando ha verificado por completo la copia remota del primer volumen enviado a revisión. Por eso un token incorrecto puede pasar inadvertido durante horas o días después de preparar la configuración.
+- El script no hace ninguna llamada a Fisqua. El backend detecta un token incorrecto en la primera llamada: Fisqua responde `401` y el backend detiene los envíos y las consultas de estado (9.4). El backend solo hace su primera llamada a Fisqua cuando ha verificado por completo la copia externa del primer volumen enviado a revisión. Por eso un token incorrecto puede pasar inadvertido durante horas o días después de preparar la configuración.
 
 El backend lee `offsite.env` al arrancar. Durante una actualización, ejecuta el script antes del paso 6 y el reinicio de 6.1 aplica los cambios. Fuera de una actualización, reinicia dtk. Elimina el archivo de claves después de ejecutar el script:
 
@@ -849,71 +869,79 @@ Cuando una persona operadora envía un volumen a revisión, el backend pone en c
 
 1. El backend mantiene en cola el manifiesto hasta completar la recepción del volumen: todos los objetos del volumen deben estar verificados en el bucket.
 2. Después construye el manifiesto con un identificador fijo y lo envía en ese mismo ciclo.
-3. A partir de la respuesta de Fisqua, marca el manifiesto como entregado o rechazado. Tras un fallo transitorio, el siguiente intento queda programado para después de `DTK_FISQUA_RETRY_BASE` segundos (300). La espera duplica su duración con cada fallo posterior, hasta un máximo de `DTK_FISQUA_RETRY_MAX` (6 horas), y nunca termina antes del momento que indique `Retry-After` de Fisqua. El backend envía el manifiesto en el primer ciclo de envío posterior a ese momento. Ejecuta un ciclo de envío después de cada ejecución de carga de imágenes, y ejecuta estas cargas cada `DTK_OFFSITE_BACKUP_INTERVAL` (30 minutos de forma predeterminada), o de inmediato cuando un envío a revisión activa la tarea programada. El backend sigue reintentando sin límite de intentos.
+3. A partir de la respuesta de Fisqua, marca el manifiesto como entregado o rechazado. Tras un fallo transitorio, el siguiente intento queda programado para después de `CAPTUA_FISQUA_RETRY_BASE` segundos (300). La espera duplica su duración con cada fallo posterior, hasta un máximo de `CAPTUA_FISQUA_RETRY_MAX` (6 horas), y nunca termina antes del momento que indique `Retry-After` de Fisqua. El backend envía el manifiesto en el primer ciclo de envío posterior a ese momento. Ejecuta un ciclo de envío después de cada ejecución de carga de imágenes, y ejecuta estas cargas cada `CAPTUA_OFFSITE_BACKUP_INTERVAL` (30 minutos de forma predeterminada), o de inmediato cuando un envío a revisión activa la tarea programada. El backend sigue reintentando sin límite de intentos.
 
-El backend rechaza de inmediato, sin enviarlo, un volumen cuyo código de referencia registrado no coincida con su prefijo de nombre de archivo, con el problema `reference_code_differs`. Si el componente que construye el manifiesto rechaza un volumen, el backend lo rechaza con los problemas que indica ese componente. Al retirar un volumen de revisión, el backend retira sus manifiestos aún no enviados y no envía nada a Fisqua. Un nuevo envío a revisión reemplaza los manifiestos del volumen que aún no ha enviado. Mientras exista la suspensión (4.0), el backend no construye ni envía ningún manifiesto.
+El backend rechaza de inmediato, sin enviarlo, un volumen cuyo código de referencia registrado no coincida con su raíz, con el problema `reference_code_differs`. Si el componente que construye el manifiesto rechaza un volumen, el backend lo rechaza con los problemas que indica ese componente. Al retirar un volumen de revisión, el backend retira sus manifiestos aún no enviados y no envía nada a Fisqua. Un nuevo envío a revisión reemplaza los manifiestos del volumen que aún no ha enviado. Mientras exista la suspensión (4.0), el backend no construye ni envía ningún manifiesto.
 
-En el equipo de pruebas, el 25 de octubre de 2026, con el volumen `cobos-bench-005` y el límite predeterminado de `750k` (4.5): el backend empezó la carga 2 segundos después del envío a revisión, verificó sus 12 objetos en 5 minutos y 43 segundos, y envió el manifiesto 0,08 segundos después de la última verificación. Después de retirar el volumen de revisión y enviarlo de nuevo, Fisqua registró el manifiesto nuevo en menos de 3 segundos.
+En una prueba, con el límite predeterminado de `750k` (4.5), el backend empezó la carga 2 segundos después del envío a revisión, verificó los 12 objetos del volumen en 5 minutos y 43 segundos, y envió el manifiesto 0,08 segundos después de la última verificación. Después de retirar el volumen de revisión y enviarlo de nuevo, Fisqua registró el manifiesto nuevo en menos de 3 segundos.
 
-El backend consulta por primera vez a Fisqua el estado de sus volúmenes `DTK_OFFSITE_BACKUP_DELAY` segundos (300) después del inicio y después cada diez minutos (`DTK_FISQUA_POLL_INTERVAL`, 600). Consulta un volumen mientras Fisqua no haya indicado un estado final para su manifiesto enviado más reciente y mientras Fisqua ofrezca un conjunto de decisiones del volumen que el backend aún no haya leído (9.5). Los estados finales son `published`, `refused` y `superseded`.
+El backend consulta por primera vez a Fisqua el estado de sus volúmenes `CAPTUA_OFFSITE_BACKUP_DELAY` segundos (300) después del inicio y después cada diez minutos (`CAPTUA_FISQUA_POLL_INTERVAL`, 600). Consulta un volumen mientras Fisqua no haya indicado un estado final para su manifiesto enviado más reciente y mientras Fisqua ofrezca un conjunto de decisiones del volumen que el backend aún no haya leído (9.5). Los estados finales son `published`, `refused` y `superseded`.
 
 ### 9.4 La página del volumen {#the-volume-page}
 
-En la barra superior de la vista del volumen, debajo de la línea de copia remota, una línea muestra la entrega a Fisqua del manifiesto más reciente del volumen que no tenga un reemplazo posterior ni haya sido retirado. Cuando hay más información (una detención por configuración, un incidente, problemas, notas o envíos anteriores), puedes seleccionar la línea para abrir un panel. Los textos de la línea son los siguientes:
+En la barra superior de la vista del volumen, debajo de la línea de copia externa, una línea muestra la entrega a Fisqua del manifiesto más reciente del volumen que no tenga un reemplazo posterior ni haya sido retirado. Cuando hay más información (una detención por configuración, un incidente, problemas, notas o envíos anteriores), puedes seleccionar la línea para abrir un panel. Los textos de la línea son los siguientes:
 
 | Texto | Significado |
 |---|---|
-| `Not sent to Fisqua yet` | El backend no tiene ningún manifiesto en cola para el volumen, o todos tienen reemplazos posteriores o han sido retirados. |
-| `Waiting for the complete offsite copy before sending to Fisqua` | El manifiesto está en cola; el volumen todavía no tiene recepción completa. |
-| `Captua is sending the capture manifest to Fisqua` | El manifiesto está construido y espera el siguiente ciclo de envío (`ready`), o el backend lo está enviando (`sending`). Durante una detención por configuración debida a `token`, `not_found` o `redirect`, la línea conserva este texto y el panel muestra la advertencia. |
-| `Captua could not send the capture manifest to Fisqua; it will try again <when>` | Ocurrió un fallo transitorio; el backend vuelve a intentar el envío. |
-| `Not sent to Fisqua: Captua cannot build the capture manifest` | El equipo rechazó el manifiesto; la lista indica los problemas. |
-| `Fisqua refused the capture manifest` | Fisqua rechazó el manifiesto e indicó sus problemas. |
-| `Sent to Fisqua; waiting for its status` | El manifiesto está entregado; todavía no hay un estado. |
+| `Todavía no se ha enviado a Fisqua` | El backend no tiene ningún manifiesto en cola para el volumen, o todos tienen reemplazos posteriores o han sido retirados. |
+| `Captua lo enviará a Fisqua cuando la copia externa esté completa` | El manifiesto está en cola; el volumen todavía no tiene recepción completa. |
+| `Captua está enviando el manifiesto de captura a Fisqua` | El manifiesto está construido y espera el siguiente ciclo de envío (`ready`), o el backend lo está enviando (`sending`). Durante una detención por configuración debida a `token`, `not_found` o `redirect`, la línea conserva este texto y el panel muestra la advertencia. |
+| `Captua no pudo enviar el manifiesto de captura a Fisqua; lo intentará de nuevo <cuándo>` | Ocurrió un fallo transitorio; el backend vuelve a intentar el envío. |
+| `No se envió a Fisqua: Captua no puede generar el manifiesto de captura` | El equipo rechazó el manifiesto; la lista indica los problemas. |
+| `Fisqua rechazó el manifiesto de captura` | Fisqua rechazó el manifiesto e indicó sus problemas. |
+| `Enviado a Fisqua; a la espera de que Fisqua informe el estado` | El manifiesto está entregado; todavía no hay un estado. |
 
-La lista `Earlier sends (<n>)` del panel muestra los otros manifiestos del volumen con los mismos textos. Dos textos solo aparecen allí: `Not sent: a later send for review replaced it` para un manifiesto con un reemplazo posterior y `Not sent: the volume was withdrawn from review` para uno retirado.
+La lista `Envíos anteriores (<n>)` del panel muestra los otros manifiestos del volumen con los mismos textos. Dos textos solo aparecen allí: `No se envió: el volumen se volvió a enviar a revisión y el nuevo envío lo reemplazó` para un manifiesto con un reemplazo posterior y `No se envió: el volumen se retiró de revisión` para uno retirado.
 
-Cuando Fisqua responde, la línea muestra su estado, desde `Fisqua received the volume` hasta `Published in Fisqua`, o `Fisqua does not know this volume yet` (normalmente el manifiesto no llegó; el backend sigue consultando). El panel enumera los problemas y las notas de Fisqua, y antepone `From Fisqua: ` al texto de Fisqua. Captua redacta por su cuenta los textos de cuatro reglas: `unlisted-object` y `missing-object` (cuando Fisqua identifica el objeto), `bad-request` y `payload-too-large`. `Fisqua could not find some files in the offsite copy that Captua had already verified there. This needs investigating: ask whoever manages the scanner to check the offsite copy. The missing files are listed below.` indica un incidente: comprueba en el bucket las claves enumeradas.
+Cuando Fisqua responde, la línea muestra su estado, desde `Fisqua recibió el volumen` hasta `Publicado en Fisqua`, o `Fisqua todavía no tiene registro de este volumen` (normalmente el manifiesto no llegó; el backend sigue consultando). El panel enumera los problemas y las notas de Fisqua, y antepone `Mensaje de Fisqua: ` al texto de Fisqua. Captua redacta por su cuenta los textos de cuatro reglas: `unlisted-object` y `missing-object` (cuando Fisqua identifica el objeto), `bad-request` y `payload-too-large`. `Fisqua no encontró en la copia externa algunos archivos que Captua ya había verificado allí. Avisa al administrador: tiene que revisar la copia externa y averiguar qué pasó con ellos. Abajo aparece la lista de los archivos que faltan.` indica un incidente: comprueba en el bucket las claves enumeradas.
 
 **Detenciones por configuración.** El backend detiene los envíos y las consultas de estado de todo el equipo cuando Fisqua responde `401` o `403` (motivo `token`), `404` (`not_found`) o cualquier redirección (`redirect`). Un `404` con la regla `no-decisions` al leer decisiones no causa una detención (9.5). El backend también detiene estas operaciones ante un `400` cuyos problemas indiquen que Fisqua no puede leer los manifiestos que escribe este software (reglas `version`, `envelope` o `shape`, motivo `version`); el rechazo de ese manifiesto es definitivo. El registro muestra:
 
 ```text
-ERROR app.core.fisqua_outbox: Fisqua answered HTTP <status> (<reason>) for this unit's configuration (fingerprint <8 hex>); sending and polling stop until DTK_FISQUA_ENV, DTK_FISQUA_BASE_URL or DTK_FISQUA_TOKEN is changed
+ERROR app.core.fisqua_outbox: Fisqua answered HTTP <status> (<reason>) for this unit's configuration (fingerprint <8 hex>); sending and polling stop until CAPTUA_FISQUA_ENV, CAPTUA_FISQUA_BASE_URL or CAPTUA_FISQUA_TOKEN is changed
 ```
 
-Para el motivo `version`, el backend escribe en cambio esta línea; `<seconds>` es `DTK_FISQUA_RETRY_MAX` (21600 de forma predeterminada):
+Para el motivo `version`, el backend escribe en cambio esta línea; `<seconds>` es `CAPTUA_FISQUA_RETRY_MAX` (21600 de forma predeterminada):
 
 ```text
 ERROR app.core.fisqua_outbox: Fisqua answered HTTP 400 (version) for this unit's manifests (fingerprint <8 hex>); sending and polling stop until the software is updated, or until a retest every <seconds> s finds that Fisqua reads its manifests
 ```
 
-La página del volumen y la página de configuración indican el motivo. Para una detención por token muestran `Fisqua does not accept the token configured on this scanner, so Captua has stopped sending volumes to Fisqua and checking their status. Ask whoever manages the scanner to correct DTK_FISQUA_TOKEN and restart Captua.` Para el motivo `version` muestran `Fisqua does not read the capture manifests this version of Captua writes, so Captua has stopped sending volumes to Fisqua and checking their status. Ask whoever manages the scanner to update Captua or Fisqua.`
+La página del volumen y la página **Configuración** indican el motivo. Para una detención por token muestran `Fisqua no acepta el token configurado en este equipo, así que Captua dejó de enviarle volúmenes y de consultar en qué estado están. Avisa al administrador: tiene que corregir CAPTUA_FISQUA_TOKEN y reiniciar Captua.` Para el motivo `version` muestran `Fisqua no puede leer los manifiestos de captura de esta versión de Captua, así que Captua dejó de enviarle volúmenes y de consultar en qué estado están. Avisa al administrador: tiene que actualizar Captua, o pedir que actualicen Fisqua.`
 
-El backend conserva la detención en `/var/lib/dtk/fisqua-config-error.json`, incluso después de reiniciar. La elimina cuando cambia el entorno, el tenant (a través de la URL base que construye a partir de él, salvo que `DTK_FISQUA_BASE_URL` tenga un valor definido), `DTK_FISQUA_BASE_URL`, el token o el código instalado; entonces el registro muestra `INFO app.core.fisqua_outbox: The Fisqua configuration was changed since Fisqua refused it; sending resumes`. El backend lee `offsite.env` al arrancar: durante una actualización, el reinicio de 6.1 aplica cualquier cambio de ese archivo; fuera de una actualización, aplícalo con `sudo systemctl restart dtk`. Una actualización que cambie el commit del backend o la versión publicada también elimina una detención por token; si el token sigue siendo incorrecto, la siguiente llamada del backend vuelve a detener estas operaciones en el equipo. El backend también elimina una detención por versión después de una prueba de compatibilidad cuyo manifiesto Fisqua pueda leer (más abajo).
+El backend conserva la detención en `/var/lib/dtk/fisqua-config-error.json`, incluso después de reiniciar. La elimina cuando cambia el entorno, el tenant (a través de la URL base que construye a partir de él, salvo que `CAPTUA_FISQUA_BASE_URL` tenga un valor definido), `CAPTUA_FISQUA_BASE_URL`, el token o el código instalado; entonces el registro muestra `INFO app.core.fisqua_outbox: The Fisqua configuration was changed since Fisqua refused it; sending resumes`. El backend lee `offsite.env` al arrancar: durante una actualización, el reinicio de 6.1 aplica cualquier cambio de ese archivo; fuera de una actualización, aplícalo con `sudo systemctl restart dtk`. Una actualización que cambie el commit del backend o la versión publicada también elimina una detención por token; si el token sigue siendo incorrecto, la siguiente llamada del backend vuelve a detener estas operaciones en el equipo. El backend también elimina una detención por versión después de una prueba de compatibilidad cuyo manifiesto Fisqua pueda leer (más abajo).
 
-**La detención por versión.** Mientras dure, el backend no construye ningún manifiesto salvo el que envía una prueba de compatibilidad (más abajo). El backend vuelve a poner en espera de construcción los manifiestos que ya había construido, pero no había enviado cuando llegó el rechazo, para construirlos de nuevo con identificadores nuevos. Por eso su línea muestra `Waiting for the complete offsite copy before sending to Fisqua`. Para esta detención, el código instalado consiste en el commit del backend y la versión que indica `VERSION`: una actualización que cambie cualquiera de los dos elimina la detención, y una que no cambie ninguno la conserva. Cuando el backend no puede leer su commit, elimina la detención en cada reinicio. Un cambio de entorno, tenant, URL base o token también la elimina, al igual que una prueba de compatibilidad cuyo manifiesto Fisqua pueda leer (más abajo). Cuando desaparece la detención, el backend vuelve a enviar a revisión cada volumen cuyo manifiesto más reciente tenga un rechazo por versión, con un identificador de manifiesto nuevo, siempre que ninguno de sus registros esté en estado `captured`, y escribe `INFO app.core.fisqua_outbox: Volume <id> handed to Fisqua again under a new manifest id after a version refusal`.
+**La detención por versión.** Mientras dure, el backend no construye ningún manifiesto salvo el que envía una prueba de compatibilidad (más abajo). El backend vuelve a poner en espera de construcción los manifiestos que ya había construido, pero no había enviado cuando llegó el rechazo, para construirlos de nuevo con identificadores nuevos. Por eso su línea muestra `Captua lo enviará a Fisqua cuando la copia externa esté completa`. Para esta detención, el código instalado consiste en el commit del backend y la versión que indica `VERSION`: una actualización que cambie cualquiera de los dos elimina la detención, y una que no cambie ninguno la conserva. Cuando el backend no puede leer su commit, elimina la detención en cada reinicio. Un cambio de entorno, tenant, URL base o token también la elimina, al igual que una prueba de compatibilidad cuyo manifiesto Fisqua pueda leer (más abajo). Cuando desaparece la detención, el backend vuelve a enviar a revisión cada volumen cuyo manifiesto más reciente tenga un rechazo por versión, con un identificador de manifiesto nuevo, siempre que ninguno de sus registros esté en estado `captured`, y escribe `INFO app.core.fisqua_outbox: Volume <id> handed to Fisqua again under a new manifest id after a version refusal`.
 
-**La prueba de compatibilidad.** Mientras dure una detención por versión, el backend envía un manifiesto cada `DTK_FISQUA_RETRY_MAX` segundos (21600, seis horas), contados desde el momento en que registró la detención o desde la última prueba, el que sea posterior. Envía la primera prueba seis horas después de registrar la detención. Envía la prueba en el primer ciclo de envío posterior a ese momento y ejecuta un ciclo de envío después de cada ejecución de carga de imágenes (9.3). La prueba necesita un volumen enviado a revisión y con recepción completa de la copia remota: el backend toma, del más antiguo al más reciente, un manifiesto pendiente de construcción o construido pero nunca enviado, o un volumen cuyo manifiesto más reciente tenga un rechazo por versión y ninguno de cuyos registros esté en estado `captured`; en este último caso, vuelve a enviarlo a revisión con un identificador de manifiesto nuevo. Si no hay un volumen así o no quedan llamadas en el límite por minuto, el backend no envía nada y vuelve a intentarlo en el siguiente ciclo de envío. La acción posterior del backend depende de la respuesta de Fisqua:
+**La prueba de compatibilidad.** Mientras dure una detención por versión, el backend envía un manifiesto cada `CAPTUA_FISQUA_RETRY_MAX` segundos (21600, seis horas), contados desde el momento en que registró la detención o desde la última prueba, el que sea posterior. Envía la primera prueba seis horas después de registrar la detención. Envía la prueba en el primer ciclo de envío posterior a ese momento y ejecuta un ciclo de envío después de cada ejecución de carga de imágenes (9.3). La prueba necesita un volumen enviado a revisión y con recepción completa de la copia externa: el backend toma, del más antiguo al más reciente, un manifiesto pendiente de construcción o construido pero nunca enviado, o un volumen cuyo manifiesto más reciente tenga un rechazo por versión y ninguno de cuyos registros esté en estado `captured`; en este último caso, vuelve a enviarlo a revisión con un identificador de manifiesto nuevo. Si no hay un volumen así o no quedan llamadas en el límite por minuto, el backend no envía nada y vuelve a intentarlo en el siguiente ciclo de envío. La acción posterior del backend depende de la respuesta de Fisqua:
 
 - Fisqua acepta el manifiesto o lo rechaza por su contenido en lugar de su versión: el backend elimina la detención. En el mismo ciclo vuelve a enviar a revisión cada volumen cuyo manifiesto más reciente tenga un rechazo por versión, y después construye y envía los manifiestos pendientes, dentro del límite por ciclo.
 - Fisqua vuelve a rechazarlo por versión: el backend registra de nuevo la detención con la hora de este rechazo, así que la próxima prueba corresponde a un intervalo después.
 - El envío tiene un fallo transitorio: la detención continúa. El backend envía el mismo manifiesto con el mismo identificador en la siguiente prueba, nunca antes del momento que indique `Retry-After` de Fisqua.
 - Fisqua responde con un error de configuración (`token`, `not_found` o `redirect`): esa detención reemplaza la detención por versión. El backend no hace pruebas para ella; la conserva hasta que cambie la configuración o el código instalado (más arriba).
 
-Cuando Fisqua admita los manifiestos que escribe este software, el backend reanuda los envíos en un plazo de seis horas más la espera hasta el siguiente ciclo de envío, sin que tengas que intervenir en el equipo, siempre que exista algún volumen enviado a revisión y con recepción completa de la copia remota y ninguno de sus registros esté en estado `captured`. De lo contrario, conserva la detención hasta que exista un volumen así, o hasta que una actualización o un cambio de configuración la elimine. El backend no hace ninguna prueba mientras exista la suspensión de cargas remotas (4.0). No necesitas eliminar `/var/lib/dtk/fisqua-config-error.json` manualmente. Cuando una actualización o un cambio de configuración elimina la detención, el backend vuelve a construir, con el código nuevo y con identificadores de manifiesto nuevos, los manifiestos que construyeron las pruebas y que nunca llegaron a enviar, y el manifiesto de la última prueba cuando el backend perdió su respuesta o su envío falló.
+Cuando Fisqua admita los manifiestos que escribe este software, el backend reanuda los envíos en un plazo de seis horas más la espera hasta el siguiente ciclo de envío, sin que tengas que intervenir en el equipo, siempre que exista algún volumen enviado a revisión y con recepción completa de la copia externa y ninguno de sus registros esté en estado `captured`. De lo contrario, conserva la detención hasta que exista un volumen así, o hasta que una actualización o un cambio de configuración la elimine. El backend no hace ninguna prueba mientras exista la suspensión de cargas remotas (4.0). No necesitas eliminar `/var/lib/dtk/fisqua-config-error.json` manualmente. Cuando una actualización o un cambio de configuración elimina la detención, el backend vuelve a construir, con el código nuevo y con identificadores de manifiesto nuevos, los manifiestos que construyeron las pruebas y que nunca llegaron a enviar, y el manifiesto de la última prueba cuando el backend perdió su respuesta o su envío falló.
 
-La tarjeta **Offsite copy** de la página de configuración tiene una sección **Fisqua** con el entorno, el último envío y la última consulta de estado. `GET /system/catalogue-backup` devuelve lo mismo dentro de `fisqua`: `configured`, `token_invalid`, `environment`, `config_error`, `held`, `last_send` y `last_poll`.
+La tarjeta **Copia externa** de la página **Configuración** tiene una sección **Fisqua** con el entorno, el último envío y la última consulta de estado. `GET /system/catalogue-backup` devuelve lo mismo dentro de `fisqua`: `configured`, `token_invalid`, `environment`, `config_error`, `held`, `last_send` y `last_poll`.
 
 
 ### 9.5 Las decisiones de Fisqua {#fisquas-decisions}
 
 Cuando Fisqua ha decidido sobre los registros de un volumen, la consulta de estado lee y aplica las decisiones, exclusivamente para el envío a revisión actual del volumen:
 
-- Un registro aprobado pasa a `approved`; un registro rechazado pasa a `rejected`, con el motivo y la nota de Fisqua. El backend registra como revisor en ambos casos `Fisqua: <decidedBy>`, o `Fisqua` cuando Fisqua no identifica a nadie. La decisión de Fisqua reemplaza una decisión local.
-- El conjunto de decisiones de Fisqua reemplaza la corrección de rotación de cada imagen actual de un registro al que aplica: si el conjunto no indica una corrección para una imagen, esa imagen pierde cualquier corrección local. El backend no modifica ningún archivo.
-- El backend omite los siguientes casos e informa de ellos sin cambiar nada en ese registro: un registro que no pertenece al volumen, un registro en estado `captured` (alguien retiró el volumen de revisión o repitió la captura del registro), un registro cuyas imágenes actuales no coinciden con las que enumeraba el manifiesto objeto de la decisión (`images_changed`), una decisión que no sea de aprobación ni de rechazo, y un rechazo que la ruta local de rechazo no admitiría (`note_too_long`, un motivo que no figure en la lista, `other` sin nota).
-- El backend no aplica un conjunto de decisiones de un manifiesto anterior. Deja pendiente un conjunto mientras un envío a revisión más reciente del volumen aún no haya llegado a Fisqua.
-- Cuando el estado de Fisqua ofrece un conjunto de decisiones y Fisqua responde a su lectura con `404` y la regla `no-decisions`, el backend no aplica nada, escribe `INFO app.core.fisqua_outbox: Fisqua has no decisions to give for volume <id> yet; read again at the next poll` y vuelve a leer el conjunto en la siguiente consulta de estado. El enlace sigue activo. Cualquier otro `404` causa una detención por configuración (9.4).
+- Un registro aprobado pasa a `approved`; un registro rechazado pasa a `rejected`, con el motivo y la nota de Fisqua. En ambos casos, el backend registra como revisor `Fisqua: <decidedBy>`, o `Fisqua` cuando Fisqua no identifica a nadie. La decisión de Fisqua reemplaza cualquier decisión local.
+- El conjunto de decisiones de Fisqua reemplaza la corrección de rotación de cada imagen actual de los registros a los que se aplica: si el conjunto no indica una corrección para una imagen, esa imagen pierde cualquier corrección local. El backend no modifica ningún archivo.
+- El backend omite los casos siguientes y los informa, sin cambiar nada en el registro afectado: un registro que no pertenece al volumen, un registro en estado `captured` (alguien retiró el volumen de revisión o repitió la captura del registro), un registro cuyas imágenes actuales no coinciden con las que enumeraba el manifiesto objeto de la decisión (`images_changed`), una decisión que no sea de aprobación ni de rechazo (`invalid_decision`), y un rechazo que Captua no admitiría si se hiciera en el equipo (`note_too_long`, un motivo que no figure en la lista, `other` sin nota).
+- El backend no aplica los conjuntos de decisiones de manifiestos anteriores, y deja pendiente un conjunto mientras Fisqua no haya recibido un envío a revisión más reciente del volumen.
+- Cuando el estado de Fisqua indica que hay un conjunto de decisiones, pero Fisqua responde con `404` y la regla `no-decisions` cuando el backend lo lee, el backend no aplica nada, escribe `INFO app.core.fisqua_outbox: Fisqua has no decisions to give for volume <id> yet; read again at the next poll` y vuelve a leer el conjunto en la siguiente consulta de estado. El enlace sigue activo. Cualquier otro `404` causa una detención por configuración (9.4).
+
+Desde la versión siguiente a 0.2.0, el backend también aplica estas decisiones:
+
+- Un registro excluido, es decir, uno que según Fisqua no es una página del volumen, pasa a `excluded`, y el backend registra el revisor de la misma forma: el backend no registra ningún rechazo y no cambia ninguna imagen. El backend omite una exclusión que traiga un motivo o rotaciones.
+- Una decisión `missing_page`, con `side` igual a `left` o `right`, marca que a un registro capturado con dos cámaras le falta esa página; si el registro tiene una imagen actual de ese lado, esa imagen deja de ser la actual. Un registro en revisión o aprobado vuelve a `captured`, y el backend vuelve a abrir un registro cerrado. El backend omite un registro capturado con una sola cámara (`missing_page_single_record`).
+- Un conjunto también puede traer solicitudes de tipo `missing_opening`: por cada una, el backend añade pares de páginas vacíos después del registro que indica la solicitud (uno, o el número que indica `count`, de 1 a 50). El backend omite una solicitud que ya aplicó.
+- El backend vuelve a enviar el volumen a revisión cuando se cumplen estas condiciones: al aplicar el conjunto, marcó una página faltante o añadió un par de páginas vacío; el volumen ya se había enviado a revisión; y ningún registro está pendiente de recaptura ni en estado `captured`, salvo los que todavía tienen una página faltante sin resolver.
+- Las correcciones de rotación solo se aplican a registros aprobados o rechazados, y `invalid_decision` cubre cualquier decisión distinta de `approved`, `rejected`, `excluded` o `missing_page`.
 
 ### 9.6 Las líneas del registro {#the-journal-lines}
 
@@ -928,7 +956,13 @@ INFO app.core.fisqua_decisions: Fisqua decisions <id> applied to volume <id>: ap
 INFO app.core.fisqua_outbox: Fisqua has no decisions to give for volume <id> yet; read again at the next poll
 ```
 
-Durante una detención por versión (9.4), el backend escribe una línea cuando envía cada prueba de compatibilidad y otra para su resultado; `<seconds>` es `DTK_FISQUA_RETRY_MAX`:
+Desde la versión siguiente a 0.2.0, la línea de las decisiones incluye más recuentos:
+
+```text
+INFO app.core.fisqua_decisions: Fisqua decisions <id> applied to volume <id>: approved=<n> rejected=<n> excluded=<n> unchanged=<n> skipped=<n> rotations=<n> rotations_skipped=<n> missing_pages=<n> placeholders=<n> requests_skipped=<n> reopened=<n>
+```
+
+Durante una detención por versión (9.4), el backend escribe una línea cuando envía cada prueba de compatibilidad y otra para su resultado; `<seconds>` es `CAPTUA_FISQUA_RETRY_MAX`:
 
 ```text
 INFO app.core.fisqua_outbox: Fisqua version stop retest: sending manifest <manifest id> of volume <id>
@@ -954,14 +988,14 @@ Los fallos tienen sus propias líneas: `Sending manifest <id> of volume <id> to 
 
 ### 9.7 Cuando no llega nada a Fisqua {#when-nothing-arrives-in-fisqua}
 
-1. `GET /system/catalogue-backup` (6.3): `fisqua.configured` debe tener el valor `true`. Si `token_invalid` tiene el valor `true`, el token no contiene 64 caracteres hexadecimales en minúsculas. Si `configured` tiene el valor `false` y `token_invalid` tiene el valor `false`, comprueba que `DTK_FISQUA_TOKEN` tenga un valor (el comando de 4.3 lo muestra como `(not shown)`), y comprueba `DTK_FISQUA_ENV` y `DTK_OFFSITE_TENANT`. Durante una actualización, introduce cualquier cambio antes del paso 6 y el reinicio de 6.1 lo aplica; fuera de una actualización, reinicia dtk con `sudo systemctl restart dtk`. Si `config_error` tiene un valor, consulta las detenciones por configuración de 9.4. Para el motivo `version`, el backend hace una prueba de compatibilidad cada seis horas sin que tengas que intervenir en el equipo, siempre que exista algún volumen enviado a revisión y con recepción completa de la copia remota y ninguno de sus registros esté en estado `captured`; de lo contrario, conserva la detención hasta que exista un volumen así, o hasta que una actualización o un cambio de configuración la elimine. El backend no hace ninguna prueba mientras exista la suspensión. `config_error.at` es la hora en que el backend registró la detención por última vez; una prueba que Fisqua rechaza por versión renueva esa hora. `config_error.retest_at` es la hora de la última prueba cuyo envío falló (`null` en cualquier otro caso). Ambas horas corresponden a UTC y aparecen sin desplazamiento horario. La siguiente prueba corresponde a seis horas después de la más reciente de las dos. Si `held` tiene el valor `true` y ya terminaste el paso 5, retira la suspensión (6.2); durante una actualización, déjala.
-2. La línea del volumen en 9.4. `Waiting for the complete offsite copy…` (el inicio del texto) indica que la carga aún no ha verificado todos los objetos: lee la línea de copia remota del volumen y las líneas `Image upload run`.
+1. `GET /system/catalogue-backup` (6.3): `fisqua.configured` debe tener el valor `true` y, desde la versión siguiente a 0.2.0, también `fisqua.mode_allows` (6.2a). Si `token_invalid` tiene el valor `true`, el token no contiene 64 caracteres hexadecimales en minúsculas. Si `configured` tiene el valor `false` y `token_invalid` tiene el valor `false`, comprueba que `offsite.env` contenga `DTK_FISQUA_TOKEN` (el comando de 4.3 lo muestra como `(not shown)`), y comprueba allí `DTK_FISQUA_ENV` y `DTK_OFFSITE_TENANT`. Durante una actualización, introduce cualquier cambio antes del paso 6 y el reinicio de 6.1 lo aplica; fuera de una actualización, reinicia dtk con `sudo systemctl restart dtk`. Si `config_error` tiene un valor, consulta las detenciones por configuración de 9.4. Para el motivo `version`, el backend hace una prueba de compatibilidad cada seis horas sin que tengas que intervenir en el equipo, siempre que exista algún volumen enviado a revisión y con recepción completa de la copia externa y ninguno de sus registros esté en estado `captured`; de lo contrario, conserva la detención hasta que exista un volumen así, o hasta que una actualización o un cambio de configuración la elimine. El backend no hace ninguna prueba mientras exista la suspensión. `config_error.at` es la hora en que el backend registró la detención por última vez; una prueba que Fisqua rechaza por versión renueva esa hora. `config_error.retest_at` es la hora de la última prueba cuyo envío falló (`null` en cualquier otro caso). Ambas horas corresponden a UTC y aparecen sin desplazamiento horario. La siguiente prueba corresponde a seis horas después de la más reciente de las dos. Si `held` tiene el valor `true` y ya terminaste el paso 5, retira la suspensión (6.2); durante una actualización, déjala.
+2. La línea del volumen en 9.4. `Captua lo enviará a Fisqua cuando la copia externa esté completa` indica que la carga aún no ha verificado todos los objetos: lee la línea de copia externa del volumen y las líneas `Image upload run`.
 3. El registro: `journalctl -u dtk --since "1 hour ago" | grep -E "Fisqua|Image upload run"`.
-4. El backend vuelve a consultar cada diez minutos un volumen entregado para el que Fisqua responde `Fisqua does not know this volume yet`, y no reenvía nada por su cuenta. Para enviarlo de nuevo, retira el volumen de revisión y vuelve a enviarlo a revisión: el backend pone en cola un manifiesto nuevo con un identificador nuevo y lo envía cuando el volumen tiene recepción completa. El backend solo pone en cola un manifiesto nuevo mientras algunos registros del volumen estén en revisión; al retirar el volumen de revisión, devuelve únicamente esos registros al estado `captured`, y no pone nada en cola para un envío a revisión que no tenga ningún registro en estado `captured`.
+4. El backend vuelve a consultar cada diez minutos un volumen entregado para el que la línea muestra `Fisqua todavía no tiene registro de este volumen`, y no reenvía nada por su cuenta. Para enviarlo de nuevo, retira el volumen de revisión y vuelve a enviarlo a revisión: el backend pone en cola un manifiesto nuevo con un identificador nuevo y lo envía cuando el volumen tiene recepción completa. El backend solo pone en cola un manifiesto nuevo mientras algunos registros del volumen estén en revisión; al retirar el volumen de revisión, devuelve únicamente esos registros al estado `captured`, y no pone nada en cola para un envío a revisión que no tenga ningún registro en estado `captured`.
 
 ## 10. Comprobaciones después de una actualización {#checks-after-an-update}
 
-Ejecuta estas comprobaciones en el equipo de pruebas después de cada actualización y en un equipo en uso después de actualizarlo:
+Ejecuta estas comprobaciones en un equipo de pruebas después de cada actualización y en un equipo en uso después de actualizarlo:
 
 ```bash
 curl -s http://localhost:8000/health
@@ -986,17 +1020,17 @@ sudo cat /etc/dtk/hostname-switch
 - La salida incluye `ConditionPathExists=!/etc/dtk/unresolved-deployment` de la configuración complementaria.
 - `check-stack-health.sh` informa de que la base de datos funciona correctamente y el puerto 5432 escucha en el equipo, en cualquier dirección, y de que el frontend y nginx están en ejecución.
 - El registro no contiene `Cannot start` ni `Traceback`; interpreta cualquier línea `Volume layout:` como indica 3.4. `offsite uploads are on hold` aparece en cada ejecución mientras exista la suspensión.
-- `GET /system/catalogue-backup` (6.3) indica para `held` el valor esperado según el punto del procedimiento y, en un equipo con el enlace, `fisqua.configured` tiene el valor `true` y no hay `config_error`.
-- En un equipo con el enlace, el registro no contiene ninguna línea `Fisqua answered HTTP` desde el reinicio. La línea `Fisqua accepted manifest` (9.6) solo aparece después de que un volumen enviado a revisión tenga recepción completa de su copia remota; una línea `Fisqua outbox pass` también puede informar de un volumen rechazado por no ser exportable. Ninguna de las dos aparece mientras exista la suspensión.
-- En un volumen enviado a revisión después de la actualización, la línea de Fisqua debajo de la línea de copia remota muestra `Sent to Fisqua; waiting for its status` o un estado de Fisqua (9.4).
+- `GET /system/catalogue-backup` (6.3) indica para `held` el valor esperado según el punto del procedimiento y, en un equipo con el enlace, `fisqua.configured` tiene el valor `true` y no hay `config_error`. Desde la versión siguiente a 0.2.0, una vez fijado el modo (6.2a), `mode_allows`, `images.mode_allows` y, en un equipo con el enlace, `fisqua.mode_allows` tienen el valor `true`.
+- En un equipo con el enlace, el registro no contiene ninguna línea `Fisqua answered HTTP` desde el reinicio. La línea `Fisqua accepted manifest` (9.6) solo aparece después de que un volumen enviado a revisión tenga recepción completa de su copia externa; una línea `Fisqua outbox pass` también puede informar de un volumen rechazado por no ser exportable. Ninguna de las dos aparece mientras exista la suspensión.
+- En un volumen enviado a revisión después de la actualización, la línea de Fisqua debajo de la línea de copia externa muestra `Enviado a Fisqua; a la espera de que Fisqua informe el estado` o un estado de Fisqua (9.4).
 - En un equipo cuyo nombre cambió desde `digitool`: `hostname` imprime `captua`; `getent` imprime una dirección para ambos nombres; `HOST_IP=captua.local` y `CORS_ORIGINS` incluye `http://captua.local` y `http://digitool.local`; `dtk-mdns-alias` tiene los estados `enabled` y `active`; `/etc/dtk/hostname-switch` contiene `state=done`. Desde otra computadora de la misma red, `http://captua.local`, `http://digitool.local` y la dirección IP del equipo permiten abrir la aplicación e iniciar sesión. En un equipo que conservó su nombre, el registro de la actualización indica el motivo (2.6).
 
 ---
 
 ## Un equipo nuevo {#a-new-unit}
 
-1. Prepara la tarjeta con `sudo ./scripts/setup.sh`, que asigna el nombre `captua` (`sudo DTK_HOSTNAME=captua-2 ./scripts/setup.sh` para un segundo equipo en un mismo lugar), y después con `sudo ./scripts/install-service.sh`, que también instala la configuración complementaria para las actualizaciones sin resolver (consulta [Preparación y distribución de tarjetas SD](/guia/instalacion/tarjetas-sd/)).
+1. Prepara la tarjeta con `sudo ./scripts/setup.sh`, que asigna el nombre `captua` (`sudo CAPTUA_HOSTNAME=captua-2 ./scripts/setup.sh` para un segundo equipo en un mismo lugar), y después con `sudo ./scripts/install-service.sh`, que también instala la configuración complementaria para las actualizaciones sin resolver (consulta [Preparación y distribución de tarjetas SD](/guia/instalacion/tarjetas-sd/)).
 2. Escribe el archivo de claves y ejecuta `provision-rclone.sh` con `--tenant` y `--dump-recipient` como indica el paso 4. Para un equipo con el enlace a Fisqua, añade `--fisqua-env` y una línea `FISQUA_TOKEN` en el archivo de claves (9.2).
-3. Inicia o reinicia `dtk` y comprueba el resultado como indica 6.3.
+3. Inicia o reinicia `dtk` y comprueba el resultado como indica 6.3. Desde la versión siguiente a 0.2.0, si encendiste el equipo antes del paso 2, fija primero su modo (6.2a).
 
-Debes asignar el prefijo de nombre de archivo a un volumen nuevo al crearlo, así que el paso 3 no corresponde. Como el bucket no contiene nada anterior al equipo, el paso 5 tampoco corresponde.
+Debes asignar la raíz a un volumen nuevo al crearlo, así que el paso 3 no corresponde. Como el bucket no contiene nada anterior al equipo, el paso 5 tampoco corresponde.

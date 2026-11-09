@@ -17,7 +17,7 @@ This guide explains how to connect and configure the **Arducam IMX519** camera o
 * Arducam IMX519 Camera Module, SKU: B0371 x 2
 * CSI **22-to-22-pin Ribbon Cable** (15 cm or 20 cm recommended) x 2
 * Raspberry Pi Official Power Supply (5V/3A or higher, 27 W PSU recommended)
-* microSD Card 16 GB with Raspberry Pi OS Lite (64-bit) installed
+* microSD Card 16 GB with Raspberry Pi OS (Legacy, 64-bit) Lite, Debian 12 "Bookworm", installed. Raspberry Pi Imager's plain "Raspberry Pi OS Lite (64-bit)" entry now installs Debian 13 "Trixie", which Captua has not been validated against.
 
 Initial setup steps for Raspberry Pi OS can be found in the [Raspberry Pi Documentation](https://www.raspberrypi.com/documentation/computers/getting-started.html).
 

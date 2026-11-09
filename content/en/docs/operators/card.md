@@ -12,7 +12,7 @@ A one-page guide for the people who operate the scanner. Print it and keep it ne
 ## Shutting down and restarting the scanner {#shutting-down-and-restarting-the-scanner}
 
 1. If a capture is in progress, wait for it to finish.
-2. Open the user menu. In **Overview** and **Projects**, click your user name at the bottom of the sidebar; if the sidebar is collapsed, click the box with the first two letters of your name. On the capture screen and the volume screen, click the circle with those letters at the top right.
+2. Open the user menu. On any screen with the sidebar, such as **Overview** or **Projects**, click your user name at the bottom of the sidebar; if the sidebar is collapsed, click the box with the first two letters of your name. On the capture screen and the volume screen, click the circle with those letters at the top right.
 3. Click "Shut down the scanner", then "Yes, shut down" to confirm.
 4. "Shutting down the scanner…" appears. Unplug the power only when the screen goes dark.
 
@@ -44,8 +44,8 @@ If you leave the switch on AF, each capture takes about 12 seconds longer and ca
 
 ## Sending a finished volume for review {#sending-a-finished-volume-for-review}
 
-1. Open the volume: **Projects →** your project **→** the volume.
-2. Click "Send for review" in the top bar. If you already sent part of the volume, the button shows how many new records you are about to send (for example, "Send 3 new records").
+1. Open the volume: **Projects →** your project **→** the volume. If your unit does not use projects, open **Volumes →** the volume.
+2. Click "Send for review" in the top bar. If you already sent part of the volume, the button shows how many new records you are about to send (for example, "Send 3 new records"). If the button says how many retakes are left (for example, "2 retakes left"), you can't send yet: finish the retakes first, and then you can send the volume.
 3. Click "Send" to confirm.
 
 From then on the records are under review and you can't move them to another volume. If you made a mistake, click "Withdraw from review", then "Withdraw" to confirm. This withdraws only the records not yet reviewed; approved and rejected records stay as they are.
@@ -64,6 +64,6 @@ From then on the records are under review and you can't move them to another vol
 
 ## If the application freezes {#if-the-application-freezes}
 
-Press **Ctrl+Alt+F2**, type `sudo systemctl restart dtk`, and press Enter. **No message appears after you press Enter; this is normal.** Wait about 30 seconds, then go back to the application with **Ctrl+Alt+F1**.
+Press **Ctrl+Alt+F2**, type `sudo systemctl restart dtk`, and press Enter. **No message appears while Captua is being restarted; this is normal.** Wait until the prompt appears again, which can take a minute or more, then go back to the application with **Ctrl+Alt+F1**.
 
-If the application still doesn't respond, shut the scanner down with the power button (see above) and switch it on again.
+If a message appears saying that `dtk.service` failed, or if the application still doesn't respond, shut the scanner down with the power button (see above) and switch it on again.
