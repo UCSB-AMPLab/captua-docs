@@ -108,15 +108,18 @@ On a unit provisioned with `scripts/setup.sh`, the systemd service `dtk.service`
 `scripts/setup.sh` prepares a unit: it creates `.env` if it is missing, installs pixi v0.73.0 if no pixi is installed (the committed `pixi.lock` needs a pixi that reads lock-file format v7), installs the backend environment, links the system camera libraries, builds python-gphoto2 against the system libgphoto2, and applies the database migrations. On an unprovisioned Pi, run `scripts/setup.sh`, or do the backend steps by hand:
 
 ```bash
+# from the repository root: start PostgreSQL and wait until it is healthy
+docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --pull never --wait db
 cd backend
 pixi install --locked        # first time only
 pixi run setup-camera-link   # puts the system picamera2 and libcamera packages on the environment's path
 pixi run db-upgrade          # applies the migrations; the backend refuses to start against an un-migrated database
+cd ..
 ```
 
 `setup-camera-link` needs the Raspberry Pi OS packages `python3-picamera2` and `python3-libcamera`, which `scripts/setup.sh` installs. pixi supports only `linux-aarch64` and `linux-64` (`platforms` in `backend/pixi.toml`), so the native backend cannot run on macOS or Windows. Use the Docker backend there.
 
-Start the database, the production frontend and Nginx, as `scripts/start.sh` does:
+From the repository root, start the database, the production frontend and Nginx, as `scripts/start.sh` does:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --pull never --wait --remove-orphans
