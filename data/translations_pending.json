@@ -1,4 +1,12 @@
 {
   "_comment": "English translationKeys whose Spanish page under content/es/ does not exist yet. npm test fails if an English page has neither a Spanish counterpart nor an entry here, or if an entry here already has a Spanish page. The Spanish step removes each key as it adds the page.",
-  "pending": []
+  "pending": [],
+  "_comment_english_only": "English translationKeys published in English only, by decision: the developer guides. npm test fails if one of them gains a Spanish page while still listed here.",
+  "english_only": [
+    "docs-developers",
+    "docs-developers-developer-setup",
+    "docs-developers-git-workflow",
+    "docs-developers-camera-libraries",
+    "docs-developers-api-reference"
+  ]
 }

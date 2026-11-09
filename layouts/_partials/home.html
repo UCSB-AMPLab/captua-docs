@@ -10,7 +10,7 @@
 {{ if gt (len .AllTranslations) 1 }}<nav class="hero__lang-toggle" aria-label="{{ $labels.language }}">{{ range .AllTranslations }}<a lang="{{ .Language.Lang }}" href="{{ .RelPermalink }}"{{ if eq .Language.Lang $lang }} aria-current="page"{{ end }}>{{ .Language.LanguageName }}</a>{{ end }}</nav>{{ end }}
 <p class="hero__tagline">{{ $copy.tagline }}</p>
 <div class="hero__cta"><a class="btn btn--primary" href="{{ $r.home }}">{{ $labels.guides }}</a><a class="btn btn--secondary" href="https://github.com/UCSB-AMPLab/digitization-toolkit-software/releases">{{ $copy.releases }} ↗</a></div>
-<nav class="hero__utility" aria-label="Captua"><a href="https://github.com/UCSB-AMPLab/digitization-toolkit-software">{{ $copy.source_code }} ↗</a><a href="{{ site.Params.api_reference }}">{{ $labels.api_reference }} ↗</a></nav>
+<nav class="hero__utility" aria-label="Captua"><a href="https://github.com/UCSB-AMPLab/digitization-toolkit-software">{{ $copy.source_code }} ↗</a><a href="{{ site.Params.api_reference }}">{{ $labels.api_reference }}</a></nav>
 </div>
 <a class="hero__scroll" href="#about" aria-label="{{ $copy.about_label }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></a></section>
 <section class="home-about" id="about" aria-labelledby="about-heading"><div class="home-about__content"><h2 id="about-heading">{{ $copy.about_heading }}</h2>

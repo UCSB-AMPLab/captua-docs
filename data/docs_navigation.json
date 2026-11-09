@@ -89,11 +89,19 @@
       "footer": "El Archives, Memory, and Preservation Lab (AMPL) de la Universidad de California en Santa Bárbara y la Universidad de Texas en Austin desarrollan Captua con financiación del National Endowment for the Humanities."
     }
   },
-  "order": [
-    "operators",
-    "cameras",
-    "deployment"
-  ],
+  "order": {
+    "en": [
+      "operators",
+      "cameras",
+      "deployment",
+      "developers"
+    ],
+    "es": [
+      "operators",
+      "cameras",
+      "deployment"
+    ]
+  },
   "sections": {
     "en": {
       "operators": {
@@ -167,14 +175,37 @@
             "title": "Reference",
             "items": [
               {
-                "title": "API reference",
-                "url": "https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md",
-                "external": true
+                "page": "/docs/developers/api-reference"
               }
             ]
           }
         ],
         "page": "/docs/deployment"
+      },
+      "developers": {
+        "title": "Developers",
+        "url": "/docs/developers/",
+        "groups": [
+          {
+            "id": "main",
+            "title": "Developers",
+            "items": [
+              {
+                "page": "/docs/developers/developer-setup"
+              },
+              {
+                "page": "/docs/developers/git-workflow"
+              },
+              {
+                "page": "/docs/developers/camera-libraries"
+              },
+              {
+                "page": "/docs/developers/api-reference"
+              }
+            ]
+          }
+        ],
+        "page": "/docs/developers"
       }
     },
     "es": {
@@ -249,8 +280,8 @@
             "title": "Referencia",
             "items": [
               {
-                "title": "Referencia de la API",
-                "url": "https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md",
+                "title": "Referencia de la API (en inglés)",
+                "url": "/docs/developers/api-reference/",
                 "external": true
               }
             ]

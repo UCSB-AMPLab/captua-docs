@@ -41,7 +41,7 @@
   },
   "params": {
     "docs_preview": false,
-    "api_reference": "https://github.com/UCSB-AMPLab/digitization-toolkit-software/blob/dev/docs/developers/API_REFERENCE.md",
+    "api_reference": "/docs/developers/api-reference/",
     "repository": "https://github.com/UCSB-AMPLab/captua-docs"
   },
   "enableRobotsTXT": true,
