@@ -51,5 +51,36 @@
       "source": "docs/developers/device_setup_CM4.qmd",
       "reason": "Captua units use standard Raspberry Pi 5 boards; the CM4 build is not used."
     }
+  ],
+  "later_moves": [
+    {
+      "source": "UCSB-AMPLab/digitization-toolkit-software docs/developers/API_REFERENCE.md",
+      "source_commit": "cf70bbe",
+      "url": "/docs/developers/api-reference/",
+      "translationKey": "docs-developers-api-reference",
+      "section": "developers",
+      "note": "Brought up to date with the code on 2026-11-08; English only."
+    },
+    {
+      "source": "UCSB-AMPLab/digitization-toolkit-software.wiki Developer-Setup-Guide.md",
+      "source_commit": "29bb223",
+      "url": "/docs/developers/developer-setup/",
+      "translationKey": "docs-developers-developer-setup",
+      "section": "developers"
+    },
+    {
+      "source": "UCSB-AMPLab/digitization-toolkit-software.wiki Git-workflow.md",
+      "source_commit": "29bb223",
+      "url": "/docs/developers/git-workflow/",
+      "translationKey": "docs-developers-git-workflow",
+      "section": "developers"
+    },
+    {
+      "source": "UCSB-AMPLab/digitization-toolkit-software.wiki Dependencies-Documentation.md",
+      "source_commit": "29bb223",
+      "url": "/docs/developers/camera-libraries/",
+      "translationKey": "docs-developers-camera-libraries",
+      "section": "developers"
+    }
   ]
 }

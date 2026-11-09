@@ -16,18 +16,18 @@ CHDK no sustituye el firmware de la cámara. La cámara lo carga desde una tarje
 
 - **Dos cámaras Canon A2500.** La herramienta de preparación de tarjetas (`tools/flash_chdk.py`) descarga e instala CHDK 1.6.1-6315 específicamente para la A2500 con firmware 1.00A. No es un instalador general de CHDK para otros modelos Canon.
 - **Dos tarjetas SD**, una por cámara, preparadas según las instrucciones de esta guía.
-- **Un Mac** con una copia del repositorio [`pychdk`](https://github.com/UCSB-AMPLab/pychdk) en la etiqueta `v0.1.2`, para preparar las tarjetas. Esa es la versión que usa el backend, fijada en `backend/requirements.txt` y `backend/pixi.toml`. El repositorio de Digitization Toolkit no incluye `pychdk`. Instalarlo como paquete de Python, como hace el backend, tampoco incluye la herramienta de preparación: esta solo está en `tools/` dentro del repositorio y no forma parte del paquete. `tools/flash_chdk.py` solo funciona en macOS; usa `diskutil` del Mac para formatear y escribir la tarjeta.
+- **Un Mac** con una copia del repositorio [`pychdk`](https://github.com/UCSB-AMPLab/pychdk) en la etiqueta `v0.1.3`, para preparar las tarjetas. Esa es la versión que usa el backend, fijada en `backend/requirements.txt` y `backend/pixi.toml`. El repositorio de Captua no incluye `pychdk`. Instalarlo como paquete de Python, como hace el backend, tampoco incluye la herramienta de preparación: esta solo está en `tools/` dentro del repositorio y no forma parte del paquete. `tools/flash_chdk.py` solo funciona en macOS; usa `diskutil` del Mac para formatear y escribir la tarjeta.
 - **Un cable USB** por cámara para conectarla al equipo.
 
 {{< callout type="important" title="Todavía no hemos comprobado la captura por USB en estas cámaras" >}}
-El equipo captura la fotografía por el cable USB: la cámara envía la imagen directamente por el cable y nunca la escribe en su propia tarjeta SD. La adaptación de CHDK para la A2500 está en fase alfa, y la documentación de `pychdk` señala que esta transmisión puede fallar en la A2500 con el error PTP `0x2002`. Ni `pychdk` v0.1.2 ni este backend intentan guardar la imagen en la tarjeta como alternativa. Si aparece ese error, la captura falla por completo, sin crear un archivo en otro lugar. El backend también cierra la sesión de esa cámara y la retira de la lista de dispositivos; en la siguiente búsqueda tiene que abrirla de nuevo. Tampoco hemos comprobado si esa reconexión funciona sin problemas ni si la vista previa sigue funcionando después. Una misma prueba permitiría resolver esas dudas. El registro del backend indica el error.
+El equipo captura la fotografía por el cable USB: la cámara envía la imagen directamente por el cable y nunca la escribe en su propia tarjeta SD. Todavía nadie ha probado esta transmisión con una A2500. Si la transmisión falla, ni `pychdk` v0.1.3 ni este backend intentan guardar la imagen en la tarjeta como alternativa: la captura falla por completo, sin crear un archivo en otro lugar, y no sabemos en qué estado queda la cámara. El backend también cierra la sesión de esa cámara y la retira de la lista de dispositivos; en la siguiente búsqueda tiene que abrirla de nuevo. Tampoco hemos comprobado si esa reconexión funciona sin problemas ni si la vista previa sigue funcionando después. Una misma prueba permitiría resolver esas dudas. El registro del backend muestra el error.
 
-No sabemos todavía si estas cámaras concretas presentan ese problema: aún no hemos ejecutado la prueba con ellas. Todavía tenemos pendiente esa prueba con las cámaras. Hasta completarla, considera que la captura en la A2500 está sin comprobar y no organices una jornada de digitalización que dependa de ella.
+Todavía no sabemos si la captura por transmisión funciona con estas cámaras; esa prueba está en la lista de pruebas pendientes en el banco de trabajo. Mientras no la hagamos, considera que la captura en la A2500 no está comprobada y no organices una jornada de digitalización que dependa de ella.
 {{< /callout >}}
 
 ## Seleccionar el backend CHDK {#selecting-the-chdk-backend}
 
-Esta página corresponde a la versión que actualiza la referencia del backend en el superproyecto a una revisión posterior a NEH-231, y a las versiones siguientes. Un equipo con un backend anterior no tiene ni el código del backend CHDK ni la dependencia `pychdk`, por lo que `CAMERA_BACKEND=chdk` todavía no puede funcionar allí.
+Esta página corresponde a Captua 0.1.0-beta y a las versiones siguientes. Un equipo con una versión anterior no tiene ni el código del backend CHDK ni la dependencia `pychdk`, por lo que `CAMERA_BACKEND=chdk` no puede funcionar allí.
 
 {{< callout type="warning" appearance="simple" >}}
 Debes indicar al equipo que use el backend CHDK para estas cámaras. La configuración predeterminada del backend usa otro sistema de cámaras, y la instalación del equipo no cambia esa elección automáticamente. Aunque prepares bien las dos tarjetas y conectes dos cámaras que funcionen, el equipo puede no mostrar nada porque está buscando otro tipo de cámara.
@@ -49,17 +49,17 @@ Si no preparaste tú el equipo, consulta con quien lo hizo: quizá ya tenga esta
 
 ## Preparar una tarjeta SD {#preparing-an-sd-card}
 
-Prepara las tarjetas en un Mac con `tools/flash_chdk.py`, desde una copia del propio repositorio `pychdk`. La herramienta no está en el repositorio de Digitization Toolkit ni en la instalación de la dependencia de Python que usa el backend:
+Prepara las tarjetas en un Mac con `tools/flash_chdk.py`, desde una copia del propio repositorio `pychdk`. La herramienta no está en el repositorio de Captua ni en la instalación de la dependencia de Python que usa el backend:
 
 ```bash
 git clone https://github.com/UCSB-AMPLab/pychdk.git
 cd pychdk
-git checkout v0.1.2
+git checkout v0.1.3
 python3 tools/flash_chdk.py
 ```
 
 {{< callout type="warning" appearance="simple" >}}
-Preparar una tarjeta **borra su contenido**. La herramienta solo muestra la confirmación "This will ERASE the disk. Continue?" cuando el Mac detecta **exactamente un disco extraíble en total**, no una sola tarjeta SD. Si hay otro almacenamiento extraíble conectado, como una unidad USB u otro lector de tarjetas, la herramienta omite la confirmación y borra el disco que elijas por número. Desconecta primero todos los demás dispositivos de almacenamiento extraíble y deja conectada únicamente la tarjeta que quieras preparar.
+Preparar una tarjeta **borra su contenido**. Antes de borrar nada, la herramienta pide confirmación y nombra el disco: "This will ERASE /dev/diskN (name, sizeGB) and everything on it. Continue? [y/N]". Revisa ese nombre antes de responder `y`. La herramienta muestra todos los discos extraíbles físicos, no solo las tarjetas SD, así que en la lista puede aparecer una unidad USB externa. Si desconectas antes los demás dispositivos de almacenamiento extraíble, la tarjeta queda como única opción.
 {{< /callout >}}
 
 La herramienta descarga la versión de CHDK y conserva una copia en caché, formatea la tarjeta, extrae en ella los archivos de arranque de CHDK y modifica el sector de arranque para que la cámara pueda arrancar desde la tarjeta. Después pregunta qué páginas fotografiará esa cámara: impares, pares, o si prefieres omitir la elección. Guarda la respuesta en la tarjeta. Al terminar, **bloquea la tarjeta** con el interruptor de protección contra escritura del borde antes de insertarla en la cámara.
@@ -74,7 +74,7 @@ La tarjeta indica qué **páginas** fotografía la cámara, ODD (impares) o EVEN
 
 Por tanto, una tarjeta corresponde a "la cámara que fotografía páginas pares" o a "la cámara que fotografía páginas impares", y no a "la cámara izquierda" o "la cámara derecha".
 
-Una cámara con paridad en su tarjeta conserva el índice de esa paridad mientras ninguna otra cámara conectada declare la misma. Si dos cámaras comparten paridad, no puedes dar por hecho que sus índices sean los esperados y el backend bloquea la captura de ambas hasta que resuelvas el conflicto.
+Una cámara con paridad en su tarjeta conserva el índice de esa paridad mientras ninguna otra cámara conectada declare la misma. Si dos cámaras comparten paridad, solo la primera que el backend encuentra en el bus conserva ese índice, y el backend bloquea la captura de ambas hasta que resuelvas el conflicto.
 
 Una cámara sin paridad no tiene un índice propio: recibe el menor índice que ninguna paridad haya reservado. Cuando conectas otra cámara, el backend puede asignarle un índice distinto a la primera aunque funcione bien. Por eso conviene asignar las dos paridades antes de empezar.
 
@@ -82,7 +82,7 @@ Cuando dos cámaras comparten paridad, el backend bloquea ambas para captura. La
 
 ## El identificador de la cámara {#the-cameras-identity}
 
-Algunas de estas cámaras no proporcionan un número de serie USB, así que el equipo no siempre puede distinguir dos cámaras conectadas solo por la conexión USB. Para resolverlo, el archivo de la tarjeta que guarda la paridad también puede guardar un identificador corto: una cadena hexadecimal de 12 caracteres. La herramienta crea ese identificador la primera vez que asignas una paridad, ya sea en el banco de trabajo con `tools/flash_chdk.py` o desde el equipo, como explicamos más abajo. El equipo usa este identificador para reconocer cada cámara después de desconectarla y volver a conectarla, y para recordar su configuración.
+Algunas de estas cámaras no proporcionan un número de serie USB, así que el equipo no siempre puede distinguir dos cámaras conectadas solo por la conexión USB. Para resolverlo, el archivo de la tarjeta que guarda la paridad también puede guardar un identificador corto: una cadena hexadecimal de 12 caracteres. La primera vez que asignas una paridad, se crea ese identificador: si la asignas en el banco de trabajo, lo crea `tools/flash_chdk.py`; si la asignas desde el equipo, lo crea Captua, como explicamos más abajo. El equipo usa este identificador para reconocer cada cámara después de desconectarla y volver a conectarla, y para recordar su configuración.
 
 Cuando vuelves a preparar una tarjeta, la herramienta conserva el identificador en lugar de reemplazarlo. Por eso el equipo conserva la configuración registrada de la cámara después de volver a grabar la tarjeta.
 
@@ -96,14 +96,14 @@ La interfaz web habitual solo muestra el modelo y el índice de cada cámara, y 
 
 Consulta la lista de dispositivos con autenticación: `GET /cameras/devices`, la misma llamada que explicamos en "Asignar la paridad de una cámara". Cada cámara conectada debe aparecer con su modelo, su paridad (`odd` o `even`) y sin errores. Una cámara sin número de serie USB ni identificador propio muestra un error que indica que debes asignarle una paridad antes de capturar. Esto ocurre con estas cámaras compactas antes de la primera asignación. Asignar la paridad también crea su identificador.
 
-Si acabas de volver a grabar una tarjeta o de cambiar una paridad manualmente, solicita otra búsqueda con `POST /cameras/rescan`, en lugar de usar el resultado de una consulta anterior. Esa búsqueda vuelve a leer la tarjeta de cada cámara conectada.
+Si acabas de volver a grabar una tarjeta o de cambiar una paridad manualmente, solicita otra búsqueda con `POST /cameras/rescan`, en lugar de usar el resultado de una consulta anterior. Esa búsqueda vuelve a leer la tarjeta de cada cámara conectada. Para solicitarla necesitas una sesión con el rol **Administrador** u **Operario**; para consultar la lista de dispositivos basta con cualquier sesión.
 
 ## Asignar la paridad de una cámara {#assigning-a-cameras-parity}
 
 La interfaz todavía no tiene un control para esta tarea; esperamos incorporarlo en una versión futura. Por ahora, un administrador debe asignar la paridad directamente mediante la API del equipo.
 
 {{< callout type="warning" appearance="simple" >}}
-Iniciar sesión en la interfaz web habitual no autoriza esta operación. Si el navegador ya tiene una sesión en la interfaz web con la misma dirección, por ejemplo el navegador del equipo en `http://localhost`, el explorador interactivo de la API admite consultas de lectura con esa sesión, pero rechaza todos los cambios, incluida la asignación de paridad, con un error 403 y `"Missing X-Requested-With header"`, hasta que inicies sesión dentro del explorador como explicamos a continuación. Tampoco puedes acceder al explorador desde un portátil conectado únicamente a la red local del lugar: el puerto 8000 solo admite conexiones desde el propio equipo o mediante Tailscale.
+Iniciar sesión en la interfaz web habitual no autoriza esta operación. Si el navegador ya tiene una sesión en la interfaz web con la misma dirección, por ejemplo el navegador del equipo en `http://localhost`, el explorador interactivo de la API admite consultas de lectura con esa sesión, pero rechaza todos los cambios, incluida la asignación de paridad, con un error 403 y `"Missing X-Requested-With header"`, hasta que inicies sesión dentro del explorador como explicamos a continuación. Tampoco puedes acceder al explorador desde un portátil conectado únicamente a la red local del lugar: el puerto 8000 solo admite conexiones desde el propio equipo o mediante Tailscale. La API sí está disponible desde la red local a través de la ruta `/api/` de la interfaz, pero allí, igual que en el puerto 8000, la ruta de paridad solo acepta solicitudes de un administrador.
 {{< /callout >}}
 
 1. **Abre el explorador de la API**, en una dirección distinta de la interfaz habitual:
@@ -114,11 +114,11 @@ Iniciar sesión en la interfaz web habitual no autoriza esta operación. Si el n
    - Copia el valor `access_token` del cuerpo de la respuesta.
    - Presiona el botón verde **Authorize**, cerca de la parte superior de la página, para abrir el cuadro de diálogo.
    - Pega el token en el campo y presiona **Authorize dentro del cuadro de diálogo** para enviarlo. Pegar el token no basta: debes presionar ese segundo botón para aplicarlo. Cierra el cuadro cuando confirme la autorización.
-3. **Consulta la lista actual de dispositivos** con `GET /cameras/devices` e identifica la cámara que quieres cambiar mediante `index`, `hardware_id` y `location`/puerto.
+3. **Consulta la lista actual de dispositivos** con `GET /cameras/devices` e identifica la cámara que quieres cambiar mediante `index`, `hardware_id` y `location`, que incluye el puerto USB (por ejemplo, `USB usb:001,004`).
 4. **Envía la asignación** a `POST /cameras/side/<camera index>`, con un cuerpo JSON de `{"side": "odd"}` o `{"side": "even"}`. Reemplaza `<camera index>` por el índice actual de la cámara.
 5. **Vuelve a leer la respuesta:** contiene una lista completa de dispositivos tras una nueva búsqueda, no una sola fila actualizada. La cámara que acabas de cambiar suele pasar al otro índice. Identifica de nuevo todas las cámaras en esa lista antes de enviar otra asignación. No supongas que una cámara conserva el índice de hace un momento.
 
-Esta operación vuelve a escribir la paridad y el identificador en la tarjeta de la cámara. Conserva el identificador existente, o crea uno si la cámara no tenía ninguno.
+Esta operación vuelve a escribir la paridad y el identificador en la tarjeta de la cámara. El backend conserva el identificador que ya tenía la cámara. Crea uno nuevo en dos casos: si la cámara no tenía ninguno, o si no tiene número de serie USB y su tarjeta tiene el mismo identificador que otra cámara conectada.
 
 El equipo no asigna a una cámara una paridad que otra cámara **conectada en ese momento** ya tenga. Por eso dos cámaras conectadas no pueden intercambiar paridades directamente: cualquier paridad que intentes asignar a una ya pertenece a la otra, y el equipo rechaza la solicitud. Ningún orden de esas solicitudes resuelve el problema. Para intercambiar las paridades:
 
@@ -154,7 +154,7 @@ Consulta el registro del backend en `/var/log/dtk/capture_service.log`. El backe
 
 **El registro indica un problema de permisos al abrir la cámara y ya comprobaste la tarjeta y el backend**
 
-Revisa la regla udev. Ejecuta `lsusb`: debe mostrar una línea `"Canon, Inc."` por cámara, igual que con gPhoto2. Si `lsusb` la detecta, la conexión física funciona y el problema es de permisos. No vuelvas a ejecutar todo el script de instalación: en un equipo sin conexión útil a la red, ese script detiene los servicios y luego intenta descargar y compilar componentes que necesitan red, aunque el problema solo afecte a las cámaras. Ejecuta `sudo ./scripts/provision-chdk-usb.sh` para instalar únicamente la regla y la pertenencia al grupo. Puedes repetirlo sin alterar otros componentes. Luego reinicia el backend con `sudo systemctl restart dtk`. Al reiniciar el servicio, el backend usa la pertenencia actualizada del usuario del equipo a los grupos; no necesitas reiniciar todo el equipo.
+Revisa la regla udev. Ejecuta `lsusb`: debe mostrar una línea `"Canon, Inc."` por cámara, igual que con gPhoto2. Si `lsusb` la detecta, la conexión física funciona y el problema es de permisos. No vuelvas a ejecutar todo el script de instalación: en un equipo sin conexión útil a la red, ese script detiene los servicios y luego intenta descargar y compilar componentes que necesitan red, aunque el problema solo afecte a las cámaras. Desde la raíz de la copia del proyecto (`/home/pi/dtk`), ejecuta `sudo ./scripts/provision-chdk-usb.sh`. El script instala libusb (un equipo ya instalado ya la tiene) y la regla udev, añade el usuario del equipo al grupo y no toca nada más. Puedes ejecutarlo varias veces sin riesgo. Luego reinicia el backend con `sudo systemctl restart dtk`. Al reiniciar el servicio, el backend usa la pertenencia actualizada del usuario del equipo a los grupos; no necesitas reiniciar todo el equipo.
 
 **El registro indica que la cámara está ocupada o reservada**
 

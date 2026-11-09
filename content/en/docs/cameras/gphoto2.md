@@ -10,7 +10,7 @@ source: docs/users/setting-up-gphoto2-cams.qmd
 
 For a comprehensive list of gPhoto2-supported cameras, visit the [official support page](http://gphoto.org/proj/libgphoto2/support.php).
 
-To be fully compatible with the Digitization Toolkit software, cameras should support all of the following capabilities: Image Capture, Trigger Capture, Live View, and Configuration.
+To be fully compatible with Captua, cameras should support all of the following capabilities: Image Capture, Trigger Capture, Live View, and Configuration.
 {{< /callout >}}
 
 ## Connect the cameras to the Raspberry Pi {#connect-the-cameras-to-the-raspberry-pi}
@@ -41,6 +41,20 @@ gphoto2 --auto-detect  # expect both cameras listed
 
 If a camera is missing: reseat both cable ends, power-cycle the camera body, and check `dmesg | tail` — repeated `error -71` messages point to a bad cable or a poorly seated plug; total silence with a powered-on camera points to a charge-only cable.
 
+## Select the gPhoto2 backend {#select-the-gphoto2-backend}
+
+The backend defaults to `CAMERA_BACKEND=picamera2`, which looks only for the Pi's own ribbon-cable sensors, and the appliance's setup does not change that. With the default, the interface shows no DSLR cameras even when `gphoto2 --auto-detect` lists both. Confirm that the appliance's `.env` file (at the project root) has:
+
+```
+CAMERA_BACKEND=gphoto2
+```
+
+and then restart the backend service so it takes effect:
+
+```bash
+sudo systemctl restart dtk
+```
+
 ## Canon EOS Rebel T7 {#canon-eos-rebel-t7}
 
 - Set the focus mode to "Manual Focus": On the lens switch, set the focus mode to MF (Manual Focus).
@@ -60,9 +74,9 @@ If a camera is missing: reseat both cable ends, power-cycle the camera body, and
 {{< media id="cannon-eos-rebelt7-config-menu" >}}
 
 {{< callout type="caution" appearance="simple" >}}
-When the software opens a session on a body, which happens on the first preview, capture, or settings read after the body is switched on, it attempts to switch the body's Auto power off setting off so the camera cannot sleep mid-session; it never powers the camera off itself. Until a session has been opened, the body's own setting applies, so a body that sat idle before the first preview of the day may already have left the USB bus. If the Raspberry Pi crashes or is powered off while a session is open, the camera can stay on until you switch it off by hand.
+When the software opens a session on a body, which happens on the first preview, capture, or settings read after the body is switched on, it attempts to switch the body's Auto power off setting off so the camera cannot sleep mid-session; it never powers the camera off itself. Until a session has been opened, the body's own setting applies, so a body that sat idle before the first preview of the day may already have left the USB bus. The software does not restore Auto power off when it closes a session, so after any shutdown of the service or the Raspberry Pi, not only a crash, the camera can stay on until you switch it off by hand. If the camera menu then shows Auto power off as disabled, set it back to 15 minutes.
 {{< /callout >}}
 
 {{< callout type="important" appearance="simple" >}}
-When Auto power off fires, the camera does not just sleep — it **drops off the USB bus entirely** (`lsusb` no longer lists it), and the software cannot wake it: a slept body looks exactly like a disconnected one, and the interface will show the camera as not connected. To bring it back, **half-press the shutter button** on the camera, wait a few seconds for it to re-enumerate, then press **Reconnect cameras** in the interface (on the dashboard camera panel or in the live preview controls). The same action recovers a body whose USB cable was reseated. Keep this in mind before unplugging anything or restarting services.
+When Auto power off fires, the camera does not just sleep — it **drops off the USB bus entirely** (`lsusb` no longer lists it), and the software cannot wake it: a slept body looks exactly like a disconnected one, and the interface will show the camera as not connected. To bring it back, **half-press the shutter button** on the camera, wait a few seconds for it to re-enumerate, then press **Reconnect cameras** in the interface (on the camera panel of **Overview** or in the live preview controls). The same action recovers a body whose USB cable was reseated. Keep this in mind before unplugging anything or restarting services.
 {{< /callout >}}

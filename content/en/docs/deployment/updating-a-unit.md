@@ -1,5 +1,5 @@
 ---
-title: "Updating a Unit to 0.1.0"
+title: "Updating a Unit"
 url: /docs/deployment/updating-a-unit/
 translationKey: docs-deployment-updating-a-unit
 docs_section: deployment
@@ -8,9 +8,11 @@ source: docs/developers/updating_a_unit.qmd
 
 ***
 
-This guide is for whoever manages a unit: it takes a unit already in use to 0.1.0, through the one-time steps that follow, in the order they must be done. A short version for a new unit is at the end.
+This guide is for whoever manages a unit. It takes a unit that runs a version before 0.1.0-beta to the current release, through the one-time steps that follow, in the order they must be done. The steps were written for the move to 0.1.0-beta, and this guide calls that update "the 0.1.0-beta install"; they apply to every unit that runs a version before 0.1.0-beta, whichever release `main` now carries. A short version for a new unit is at the end.
 
 The commands assume a unit installed as `scripts/dtk.service` ships: the checkout at `/home/pi/dtk`, the service running as `pi`. Run them over SSH as `pi`.
+
+Settings are named `CAPTUA_<X>` in this guide. The older `DTK_<X>` names are still read, and the files on a unit (`.env` and `/var/lib/dtk/offsite.env`) keep the `DTK_` names, because a rollback restores code that reads only those. When both names are set, the `CAPTUA_` name wins.
 
 ---
 
@@ -24,7 +26,7 @@ git -C /home/pi/dtk submodule status
 sudo cat /var/lib/dtk/backups/last-deployed-SHA
 ```
 
-`update.sh` returns to the commit in `last-deployed-SHA` if it fails, and records it as the rollback target. With `--no-pull`, which the 0.1.0 install uses (2.1), it refuses to start, with nothing changed, when that file is absent, empty, or names a commit not in the checkout: the checkout is already the new code and cannot stand in for it. In that case, before 2.1, write the commit the first command printed:
+`update.sh` returns to the commit in `last-deployed-SHA` if it fails, and records it as the rollback target. With `--no-pull`, which the 0.1.0-beta install uses (2.1), it refuses to start, with nothing changed, when that file is absent, empty, or names a commit not in the checkout: the checkout is already the new code and cannot stand in for it. In that case, before 2.1, write the commit the first command printed:
 
 ```bash
 echo <commit> | sudo tee /var/lib/dtk/backups/last-deployed-SHA
@@ -50,11 +52,11 @@ sudo ls -lt /var/lib/dtk/backups/
 
 ### 1.4 Stop any interim upload timer {#stop-any-interim-upload-timer}
 
-Some units were given an upload timer by hand before the backend could upload. These timers are unit-specific and are not part of the software. On the Rionegro unit the timer is `b2push-interim`, and it runs the script `/home/pi/b2push.sh`, which pushes the images and also takes the daily `pg_dumpall` of the catalogue to the bucket. Find the timer and stop it, so that after the update only the backend writes to the bucket:
+Some units were given an upload timer by hand before the backend could upload. These timers are unit-specific and are not part of the software. Such a timer runs a script of its own that pushes the images to the bucket, and it may also push a daily `pg_dumpall` of the catalogue. Find the timer and stop it, so that after the update only the backend writes to the bucket:
 
 ```bash
 systemctl list-timers --all
-sudo systemctl disable --now b2push-interim.timer
+sudo systemctl disable --now <timer>.timer
 ```
 
 Use the name `list-timers` shows on your unit. The name of the service the timer starts is not recorded; `systemctl list-timers` shows it in its `ACTIVATES` column. If a run of it is in progress, wait for it to end before step 2.
@@ -62,12 +64,12 @@ Use the name `list-timers` shows on your unit. The name of the service the timer
 If you abandon the update before step 3, enable the timer again, so the unit goes on uploading as it did before:
 
 ```bash
-sudo systemctl enable --now b2push-interim.timer
+sudo systemctl enable --now <timer>.timer
 ```
 
 ### 1.5 Pin the unit's Tailscale name {#pin-the-units-tailscale-name}
 
-The update renames the unit from `digitool` to `captua` (2.6) when apt can reach its sources: the alias that keeps `digitool.local` answering needs `avahi-utils`, which the update installs. A unit that cannot reach apt keeps its name until an update that can. Tailscale takes the machine's name from its hostname unless the name is set, so a unit reached as `ssh pi-dtk` or by its Tailscale name would change name in the tailnet with it. Set the Tailscale name explicitly first, to the name the unit has in the tailnet now:
+The update renames the unit from `digitool` to `captua` (2.6) when apt can reach its sources: the alias that keeps `digitool.local` answering needs `avahi-utils`, which the update installs. A unit that cannot reach apt keeps its name until an update that can. Tailscale takes the machine's name from its hostname unless the name is set, so a unit reached over SSH by its Tailscale name would change name in the tailnet with it. Set the Tailscale name explicitly first, to the name the unit has in the tailnet now:
 
 ```bash
 tailscale status --self
@@ -80,11 +82,11 @@ The software does not touch Tailscale. Skip this on a unit without Tailscale.
 
 ## 2. Run the update {#run-the-update}
 
-### 2.1 Put the 0.1.0 code on disk first {#put-the-0.1.0-code-on-disk-first}
+### 2.1 Put the 0.1.0-beta code on disk first {#put-the-0.1.0-code-on-disk-first}
 
-For the 0.1.0 install, fetch and check out the new code by hand, and only then run `update.sh` with `--no-pull`. This is the only path for this install, on every unit. Bash reads a script from disk as it runs, so an `update.sh` that fetches its own update runs the old copy's failure handling, and none of the protections of the new script apply to that run.
+For the 0.1.0-beta install, fetch and check out the new code by hand, and only then run `update.sh` with `--no-pull`. This is the only path for this install, on every unit. Bash reads a script from disk as it runs, so an `update.sh` that fetches its own update runs the old copy's failure handling, and none of the protections of the new script apply to that run.
 
-Units run `main`, which moves only at releases. A unit on `dev` (the bench unit and the Rionegro unit, at the time of writing) is moved to `main` here, once. As `pi`:
+Units run `main`, which moves only at releases. A unit on `dev` is moved to `main` here, once. As `pi`:
 
 ```bash
 git -C /home/pi/dtk fetch origin
@@ -138,7 +140,7 @@ git -C /home/pi/dtk submodule foreach --quiet --recursive 'git ls-files -v | gre
 
 `checkout` refuses when local changes would be overwritten; set them aside by hand first, since `update.sh` does that only when it fetches.
 
-**After a rollback to a version before 0.1.0.** The rollback puts back that version's `update.sh`, which is not the 0.1.0 one. The next update must again take this path: fetch and check out the code by hand, then run the new `update.sh` with `--no-pull` (8.4). The ordinary path in "Later updates" below would run the old script.
+**After a rollback to a version before 0.1.0-beta.** The rollback puts back that version's `update.sh`, which is not the 0.1.0-beta one. The next update must again take this path: fetch and check out the code by hand, then run the new `update.sh` with `--no-pull` (8.4). The ordinary path in "Later updates" below would run the old script.
 
 ### 2.2 Run `update.sh` outside the SSH session {#run-update.sh-outside-the-ssh-session}
 
@@ -167,7 +169,7 @@ With `--no-pull`, `update.sh` installs whatever is checked out, so it checks the
 
 Each refusal says `Nothing has been changed.` The script prints its git commands with `sudo -u pi`; as `pi`, leave that prefix out. The fourth prints `sudo /home/pi/dtk/scripts/rollback-update.sh`.
 
-**Later updates (0.1.x onward).** The script on disk is then already the 0.1.0 one, so the ordinary path applies: `sudo systemd-run --unit=dtk-deploy --collect /home/pi/dtk/scripts/update.sh --yes`, which fetches and fast-forwards `main` itself. This holds only while the checkout is on 0.1.0 or later. After any rollback to a version before 0.1.0, the script on disk is the old one again, and the next update takes the 2.1 path: fetch and check out by hand, then the new `update.sh` with `--no-pull` (8.4).
+**Later updates (0.1.x onward).** The script on disk is then already the 0.1.0-beta one, so the ordinary path applies: `sudo systemd-run --unit=dtk-deploy --collect /home/pi/dtk/scripts/update.sh --yes`, which fetches and fast-forwards `main` itself. This holds only while the checkout is on 0.1.0-beta or later. After any rollback to a version before 0.1.0-beta, the script on disk is the old one again, and the next update takes the 2.1 path: fetch and check out by hand, then the new `update.sh` with `--no-pull` (8.4).
 
 ### 2.3 What `update.sh` does {#what-update.sh-does}
 
@@ -205,7 +207,7 @@ journalctl -u dtk --since "15 min ago" | grep -E "Volume layout:|Cannot start|Tr
 
 ### 2.5 Check that nothing uploads yet {#check-that-nothing-uploads-yet}
 
-The backend starts its upload schedules at boot only when `DTK_OFFSITE_REMOTE` and a valid `DTK_OFFSITE_TENANT` are both set. A unit not yet provisioned for 0.1.0 has no tenant, so nothing is uploaded. Confirm it before step 3 with the request in 6.3: `images.enabled` must be `false`. If it is `true`, the uploader keys each object by the file's name on disk, so an image copied into the bucket under a contract name would be uploaded again at a second key, and `adopt-map` would then refuse its entry as `key_differs`. On a unit whose `offsite.env` already records a remote and a tenant, create the upload hold (4.0) before step 2, so the backend holds uploads from the update's restart on:
+The backend starts its upload schedules at boot only when `CAPTUA_OFFSITE_REMOTE` and a valid `CAPTUA_OFFSITE_TENANT` are both set. A unit not yet provisioned for 0.1.0-beta has no tenant, so nothing is uploaded. Confirm it before step 3 with the request in 6.3: `images.enabled` must be `false`. If it is `true`, the uploader keys each object by the file's name on disk, so an image copied into the bucket under a contract name would be uploaded again at a second key, and `adopt-map` would then refuse its entry as `key_differs`. On a unit whose `offsite.env` already records a remote and a tenant, create the upload hold (4.0) before step 2, so the backend holds uploads from the update's restart on. The file records the two keys under their `DTK_` names:
 
 ```bash
 sudo grep -E '^DTK_OFFSITE_(REMOTE|TENANT)=' /var/lib/dtk/offsite.env
@@ -213,20 +215,20 @@ sudo grep -E '^DTK_OFFSITE_(REMOTE|TENANT)=' /var/lib/dtk/offsite.env
 
 ### 2.6 The unit name: digitool becomes captua {#the-unit-name-digitool-becomes-captua}
 
-From 0.1.0 every unit is called `captua` and answers at `http://captua.local`. The browser calls the API at `/api` on the page's own origin, through nginx, so the unit also works when opened by its IP address or by any other name that reaches it, and the kiosk opens `http://localhost` instead of `http://localhost:3000`.
+From 0.1.0-beta every unit is called `captua` and answers at `http://captua.local`. The browser calls the API at `/api` on the page's own origin, through nginx, so the unit also works when opened by its IP address or by any other name that reaches it, and the kiosk opens `http://localhost` instead of `http://localhost:3000`.
 
 `update.sh` renames a unit only when its hostname is exactly `digitool` and `.env` has `HOST_IP=digitool.local`. A unit named otherwise by hand is left alone. The work is done by `scripts/provision-hostname.sh`, in two calls:
 
-- Before the stop (`--prepare`): it installs `avahi-utils` from apt if it is missing, the alias script `/usr/local/sbin/dtk-mdns-alias`, its unit `dtk-mdns-alias.service`, the NetworkManager hook `/etc/NetworkManager/dispatcher.d/90-dtk-mdns-alias`, and the drop-in `/etc/systemd/system/dtk.service.d/hostname-repair.conf`. It tries apt under `--no-pull` too, so the 0.1.0 install (2.1) renames a unit that can reach apt. Only `update.sh --no-pull --offline` skips apt. When `avahi-utils` cannot be installed, the log says `The rename to captua waits for avahi-utils`, the unit keeps the name `digitool` until an update that can reach apt, and the update goes on.
-- With `dtk` stopped (`--switch`): it writes `127.0.1.1 captua digitool` to `/etc/hosts`, runs `hostnamectl set-hostname captua`, restarts `avahi-daemon`, and starts `dtk-mdns-alias`, which keeps `digitool.local` answering through 0.1.x. It then checks that `captua.local` and `digitool.local` both resolve, to one of the unit's own addresses. If either does not, or resolves to another device, it puts the name, `/etc/hosts`, avahi, and the alias back and leaves `.env` as it was. If both do, it sets `HOST_IP=captua.local` in `.env` and adds `http://captua.local` to `CORS_ORIGINS`, keeping `http://digitool.local`.
+- Before the stop (`--prepare`): it installs `avahi-utils` from apt if it is missing, the alias script `/usr/local/sbin/dtk-mdns-alias`, its unit `dtk-mdns-alias.service`, the NetworkManager hook `/etc/NetworkManager/dispatcher.d/90-dtk-mdns-alias`, and the drop-in `/etc/systemd/system/dtk.service.d/hostname-repair.conf`. It tries apt under `--no-pull` too, so the 0.1.0-beta install (2.1) renames a unit that can reach apt. Only `update.sh --no-pull --offline` skips apt. When `avahi-utils` cannot be installed, the log says `The rename to captua waits for avahi-utils`, the unit keeps the name `digitool` until an update that can reach apt, and the update goes on.
+- With `dtk` stopped (`--switch`): it writes `127.0.1.1 captua digitool` to `/etc/hosts`, runs `hostnamectl set-hostname captua`, restarts `avahi-daemon`, and starts `dtk-mdns-alias`, which keeps `digitool.local` answering. The alias is still installed in 0.2.0; no release has removed it yet. It then checks that `captua.local` and `digitool.local` both resolve, to one of the unit's own addresses. If either does not, or resolves to another device, it puts the name, `/etc/hosts`, avahi, and the alias back and leaves `.env` as it was. If both do, it sets `HOST_IP=captua.local` in `.env` and adds `http://captua.local` to `CORS_ORIGINS`, keeping `http://digitool.local`.
 
 Neither call can make the update fail. A rename that does not happen prints `⚠ The rename to captua did not finish`, and the unit keeps working as `digitool`.
 
 A power cut in the middle of the rename is handled at the next start of `dtk`: the drop-in runs `provision-hostname.sh --repair`. If the hostname had already changed, it writes the `127.0.1.1 captua digitool` line again, starts the alias, and checks both names as the rename does. When both resolve to the unit it finishes `.env` and records the rename as done; when `captua.local` answers from another device it undoes the rename; when the names do not answer yet (no network at boot) it finishes `.env` and leaves the record pending for the next start. If the hostname is still `digitool`, it undoes the rename; if it has since been set by hand to another name (`--name`), it keeps that name and removes the record. An undo puts `/etc/hosts` back only once the hostname is `digitool` again; if `hostnamectl` fails, everything stays as it is for the next start to try. A unit called `captua` whose `.env` still has `HOST_IP=digitool.local` is finished the same way, whatever the record says. The repair also removes the temporary files a power cut can leave next to `.env`, `/etc/hosts`, and the record.
 
-A failed update, and a rollback, restore the code but not the name. The code before 0.1.0 works under it: its frontend calls `http://${HOST_IP}/api`, now `http://captua.local/api`, which resolves, and `CORS_ORIGINS` lists both names, so a page opened as `digitool.local` can call it.
+A failed update, and a rollback, restore the code but not the name. The code before 0.1.0-beta works under it: its frontend calls `http://${HOST_IP}/api`, now `http://captua.local/api`, which resolves, and `CORS_ORIGINS` lists both names, so a page opened as `digitool.local` can call it.
 
-Once the new version answers `/health`, `update.sh` ends the kiosk's `cage` (only `pi`'s), and the tty1 autologin relaunches it from the new `start-kiosk.sh`, on `http://localhost`. That is a new origin for the browser, so the kiosk asks for a login once. `update.sh --resolve-forward` (7.4) relaunches it the same way once it has started `dtk`, and a rollback relaunches it on the restored version's address. Chromium's profile lock, `~/.config/chromium/SingletonLock`, names the hostname it was taken under, and Chromium refuses a profile locked under another name. The rename points the running kiosk's lock at `captua` (and an undo back at `digitool`), so that the next Chromium, started by whichever `start-kiosk.sh` is on disk after an update, a restore or a rollback, can take it over. The kiosk user is read from the tty1 autologin that `install-kiosk-service.sh` sets up. Before it starts Chromium, the 0.1.0 `start-kiosk.sh` also removes `SingletonLock`, `SingletonCookie`, and `SingletonSocket`, unless a Chromium of `pi`'s is still running.
+Once the new version answers `/health`, `update.sh` ends the kiosk's `cage` (only `pi`'s), and the tty1 autologin relaunches it from the new `start-kiosk.sh`, on `http://localhost`. That is a new origin for the browser, so the kiosk asks for a login once. `update.sh --resolve-forward` (7.4) relaunches it the same way once it has started `dtk`, and a rollback relaunches it on the restored version's address. Chromium's profile lock, `~/.config/chromium/SingletonLock`, names the hostname it was taken under, and Chromium refuses a profile locked under another name. The rename points the running kiosk's lock at `captua` (and an undo back at `digitool`), so that the next Chromium, started by whichever `start-kiosk.sh` is on disk after an update, a restore or a rollback, can take it over. The kiosk user is read from the tty1 autologin that `install-kiosk-service.sh` sets up. Before it starts Chromium, the 0.1.0-beta `start-kiosk.sh` also removes `SingletonLock`, `SingletonCookie`, and `SingletonSocket`, unless a Chromium of `pi`'s is still running.
 
 Two units on one network that are both called `digitool` cannot both become `captua`: the second one's check finds `captua.local` answering from the first and undoes its rename. Give it its own name by hand, as in [SD Card Distribution](/docs/deployment/sd-card-distribution/), troubleshooting; its update then leaves it alone.
 
@@ -250,7 +252,7 @@ Setting a stem moves no file. The backend writes new captures into the volume to
 
 ### 3.2 Preview the move (optional) {#preview-the-move-optional}
 
-`python -m app.core.volume_layout --dry-run` prints, as JSON, what the next start would move, and writes nothing. It needs the database up and the backend stopped, so stop `dtk`, start the database alone, run it, and stop the database again (verify on the bench):
+`python -m app.core.volume_layout --dry-run` prints, as JSON, what the next start would move, and writes nothing. It needs the database up and the backend stopped, so stop `dtk`, start the database alone, run it, and stop the database again (verify on a test unit):
 
 ```bash
 sudo systemctl stop dtk
@@ -314,7 +316,7 @@ The skip reasons:
 | `missing` | The row's file is gone and no file in `captures/` matches its capture-time sha256. |
 | `row_changed` | The row changed while the move was being planned. |
 
-The journal also holds lines logged at INFO, such as the one for freed files pointed at their new names: since backend `aa0a10a` (#134), the backend sends the INFO lines of its own `app.*` and `capture.*` loggers to stderr, which the journal records, as `<LEVEL> <logger>: <message>` (`app/core/logging_setup.py`). The level is set by `DTK_LOG_LEVEL`, `INFO` by default.
+The journal also holds lines logged at INFO, such as the one for freed files pointed at their new names: since backend `aa0a10a` (#134), the backend sends the INFO lines of its own `app.*` and `capture.*` loggers to stderr, which the journal records, as `<LEVEL> <logger>: <message>` (`app/core/logging_setup.py`). The level is set by `CAPTUA_LOG_LEVEL`, `INFO` by default.
 
 ---
 
@@ -328,7 +330,7 @@ While `/var/lib/dtk/offsite-hold` exists, nothing is sent offsite:
 - the backend takes no catalogue dump;
 - freeing a volume from the card is refused. The free's dry run and restore are not held.
 
-The backend checks for the file at the start of each run, so creating or removing it takes effect at the next run, with no restart. It also holds through a restart caused by a crash, a reboot, or a power cut. The commands in step 5 do not read it. Only the file's existence counts. Its path can be changed with `DTK_OFFSITE_HOLD_FILE`. `GET /system/catalogue-backup` reports it as `held` and `hold_file`. The send to Fisqua and the Fisqua status poll are held too: each answers "held" at its start, with no call to Fisqua and no manifest built (9.3).
+The backend checks for the file at the start of each run, so creating or removing it takes effect at the next run, with no restart. It also holds through a restart caused by a crash, a reboot, or a power cut. The commands in step 5 do not read it. Only the file's existence counts. Its path can be changed with `CAPTUA_OFFSITE_HOLD_FILE`. `GET /system/catalogue-backup` reports it as `held` and `hold_file`. The send to Fisqua and the Fisqua status poll are held too: each answers "held" at its start, with no call to Fisqua and no manifest built (9.3).
 
 Create it before provisioning, or before step 2 on a unit whose `offsite.env` already records a remote and a tenant (2.5):
 
@@ -361,22 +363,21 @@ READ_APP_KEY=...
 
 | Key | What it is |
 |---|---|
-| `KEY_ID`, `APP_KEY` | The unit's write key, `captua-<unit>-write`: `listBuckets`, `listFiles`, and `writeFiles`. No `readFiles` and no `deleteFiles`, so a stolen unit can neither download nor erase the archive. |
+| `KEY_ID`, `APP_KEY` | The unit's write key, `captua-<n>-write`: `listBuckets`, `listFiles`, and `writeFiles`. No `readFiles` and no `deleteFiles`, so a stolen unit can neither download nor erase the archive. |
 | `BUCKET` | The unit's bucket (table below). |
-| `READ_KEY_ID`, `READ_APP_KEY` | Optional. The unit's read key, `captua-<unit>-read`: `listBuckets`, `listFiles`, and `readFiles`. It must differ from the write key. Without it, restoring a freed volume is unavailable. |
+| `READ_KEY_ID`, `READ_APP_KEY` | Optional. The unit's read key, `captua-<n>-read`: `listBuckets`, `listFiles`, and `readFiles`. It must differ from the write key. Without it, restoring a freed volume is unavailable. |
 
-Both keys are scoped to the unit's bucket and its tenant prefix. `provision-rclone.sh` asks only for `writeFiles` and `listFiles` on the write key and `listFiles` and `readFiles` on the read key; the keys issued for 0.1.0 also carry `listBuckets`, as the interim Rionegro key did. Each 0.1.0 key was tested from a workstation with the `b2` command-line tool: it authorised, listed its tenant prefix, and was refused outside it. rclone on a unit has not used them yet, and no key without `listBuckets` has been tried, so whether rclone needs `listBuckets` is untested (verify). The file's mode is 0600 and its owner root.
+Both keys are scoped to the unit's bucket and its tenant prefix. `provision-rclone.sh` asks only for `writeFiles` and `listFiles` on the write key and `listFiles` and `readFiles` on the read key; the keys issued for 0.1.0-beta also carry `listBuckets`, as the earlier interim keys did. Each 0.1.0-beta key was tested from a workstation with the `b2` command-line tool: it authorised, listed its tenant prefix, and was refused outside it. rclone on a unit has not used them yet, and no key without `listBuckets` has been tried, so whether rclone needs `listBuckets` is untested (verify). The file's mode is 0600 and its owner root.
 
 For the link to Fisqua, the same file holds `FISQUA_TOKEN=<token>`, the token Fisqua issued for this unit: exactly 64 lowercase hexadecimal characters (9.2).
 
 #### Units and tenants {#units-and-tenants}
 
+Each unit has its own tenant and its own pair of keys. Several units can share a bucket. Whoever manages the offsite storage records, for each unit:
+
 | Unit | Tenant (`--tenant`) | Bucket (`BUCKET`) | Keys |
 |---|---|---|---|
-| rionegro | `ahr` | `neogranadina-masters` | `captua-rionegro-write`, `captua-rionegro-read` |
-| lab | `ampl` | `ampl-masters` | `captua-lab-write`, `captua-lab-read` |
-| sbmal | `sbmal` | `ampl-masters` | `captua-sbmal-write`, `captua-sbmal-read` |
-| cobos (staging only) | `cobos` | `ampl-masters` | `captua-cobos-write`, `captua-cobos-read` |
+| `captua-<n>` | `<tenant>` | `<bucket>` | `captua-<n>-write`, `captua-<n>-read` |
 
 Never print a key id or an application key in a log, a ticket, or this guide.
 
@@ -385,14 +386,14 @@ Never pass a key as an assignment in front of `sudo`: it becomes part of sudo's 
 ### 4.2 Run the provisioning script {#run-the-provisioning-script}
 
 ```bash
-sudo DTK_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
+sudo CAPTUA_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
     /home/pi/dtk/scripts/provision-rclone.sh \
     --tenant <tenant> \
-    --dump-recipient age172wkzadqepd565chppztfw8jefpcga8s7t6eqrfhnxnv2nlfkdrqygrl3m
+    --dump-recipient <age-recipient>
 ```
 
 - `--tenant` is the prefix every object of the unit is keyed under, and the unit's slug in Fisqua. The script refuses a value that is not 1 to 63 lowercase letters, digits, and single hyphens, starting with a letter and not ending with a hyphen, or that is one of `platform`, `www`, `api`, `admin`, or `app`. Replacing a tenant already recorded also needs `--change-tenant`.
-- `--dump-recipient` is the age public key the catalogue dumps are encrypted to; the one above is the recipient for every unit. The script refuses a private key. The private key never goes on the unit.
+- `--dump-recipient` is the age public key the catalogue dumps are encrypted to, `age1` followed by 58 characters. Every unit uses the same recipient; whoever holds its private key gives it to you. The script refuses a private key. The private key never goes on the unit.
 - `--fisqua-env production` or `--fisqua-env staging` turns on the link to Fisqua, with `FISQUA_TOKEN` in the key file (9.2).
 - The tenant, the dump recipient, the Fisqua environment, and the Fisqua token are kept on later runs that do not give them, including the run inside every update.
 
@@ -414,7 +415,7 @@ sudo rm /root/dtk-offsite-key
 sudo sed 's/^DTK_FISQUA_TOKEN=.*/DTK_FISQUA_TOKEN=(not shown)/' /var/lib/dtk/offsite.env
 ```
 
-The `sed` prints the file with the Fisqua token replaced, so the token does not reach the screen. The file holds `DTK_RCLONE_BIN`, `DTK_OFFSITE_REMOTE`, `DTK_OFFSITE_TENANT`, and `DTK_OFFSITE_DUMP_RECIPIENT`; `DTK_OFFSITE_READ_REMOTE` when a read key was given; `DTK_RCLONE_CONFIG` when the run established the rclone config's path; and `DTK_FISQUA_TOKEN` and `DTK_FISQUA_ENV` on a unit with the link to Fisqua (9.2).
+The `sed` prints the file with the Fisqua token replaced, so the token does not reach the screen. The file records its keys under their `DTK_` names. It holds `DTK_RCLONE_BIN`, `DTK_OFFSITE_REMOTE`, `DTK_OFFSITE_TENANT`, and `DTK_OFFSITE_DUMP_RECIPIENT`; `DTK_OFFSITE_READ_REMOTE` when a read key was given; `DTK_RCLONE_CONFIG` when the run established the rclone config's path; and `DTK_FISQUA_TOKEN` and `DTK_FISQUA_ENV` on a unit with the link to Fisqua (9.2).
 
 ### 4.4 Why nothing uploads yet {#why-nothing-uploads-yet}
 
@@ -426,9 +427,9 @@ A backend restarted before step 6, by a crash, a reboot, or a power cut, reads t
 
 ### 4.5 Offsite bandwidth {#offsite-bandwidth}
 
-The backend runs the image uploads, the catalogue dump uploads, and the restores of freed files under one bandwidth cap, `DTK_OFFSITE_BWLIMIT`, passed to rclone as `--bwlimit`. Bucket listings and calls to Fisqua are not capped. The default is `750k`, about 750 KB/s (verify the unit rclone reads), the setting the Rionegro unit has used over its ~12 Mbit/s link. For another site, measure the uplink in Mbit/s, divide by 8 for MB/s, and take about half. The bench unit ran with the default until the `cobos-bench-005` run (9.3), and was set to `1.5M` after it, from a home uplink of ~25 Mbit/s measured on 2026-10-25.
+The backend runs the image uploads, the catalogue dump uploads, and the restores of freed files under one bandwidth cap, `CAPTUA_OFFSITE_BWLIMIT`, passed to rclone as `--bwlimit`. Bucket listings and calls to Fisqua are not capped. The default is `750k`, about 750 KB/s (verify the unit rclone reads), a setting in use over a link of about 12 Mbit/s. For another site, measure the uplink in Mbit/s, divide by 8 for MB/s, and take about half: an uplink of about 25 Mbit/s gives about 3 MB/s, and half of that is `1.5M`.
 
-Set it in `/home/pi/dtk/.env`; `provision-rclone.sh` does not write it:
+Set it in `/home/pi/dtk/.env`, under the `DTK_` name the unit's files keep; `provision-rclone.sh` does not write it:
 
 ```bash
 DTK_OFFSITE_BWLIMIT=1.5M
@@ -455,7 +456,7 @@ The reports can be long. Send each to a file and read it there:
 pixi run python -m app.core.image_upload adopt-map /path/to/map.json > ~/adopt-map-<stem>-dry.json
 ```
 
-`adopt`, `adopt-map`, and `backfill-preview-digests` hash the files on the card in the dry run as well as with `--apply`, so both runs take time on a large volume, and an SSH disconnect stops them. Under `systemd-run` they survive a disconnect. Send the report to a file, truncated at each run, and errors to the journal (verify the form on the bench):
+`adopt`, `adopt-map`, and `backfill-preview-digests` hash the files on the card in the dry run as well as with `--apply`, so both runs take time on a large volume, and an SSH disconnect stops them. Under `systemd-run` they survive a disconnect. Send the report to a file, truncated at each run, and errors to the journal (verify the form on a test unit):
 
 ```bash
 sudo systemd-run --unit=dtk-adopt --collect --uid=pi \
@@ -483,9 +484,9 @@ The whole map is refused, with `error: <reason>` and nothing written, when:
 - its `contract`, `version`, or `kind` is not `fisqua-captua-exchange`, `1.1`, and `rename-map`;
 - it has no `volume` or `destination` object, or `entries` is not a list;
 - no volume on the unit has both its `volume.captuaCollectionId` and its `volume.stem`;
-- `DTK_OFFSITE_REMOTE` is unset or not `<remote>:<bucket>`, or its bucket is not `destination.bucket`;
+- `CAPTUA_OFFSITE_REMOTE` is unset or not `<remote>:<bucket>`, or its bucket is not `destination.bucket`;
 - `destination.root` is not a key prefix;
-- `DTK_OFFSITE_TENANT` is unset or invalid, or is not the first segment of `destination.root`;
+- `CAPTUA_OFFSITE_TENANT` is unset or invalid, or is not the first segment of `destination.root`;
 - a bucket listing does not answer.
 
 Read `refused` and `refused_counts` in the dry run. Resolve every refused entry whose image is still on the card before the backend starts uploading in step 6: the uploader would otherwise upload that file at a second key, its name on disk. Apply every map before 5.2, so that `adopt` does not record a key a map names differently.
@@ -497,7 +498,7 @@ pixi run python -m app.core.image_upload adopt <prefix>
 pixi run python -m app.core.image_upload adopt <prefix> --apply
 ```
 
-`<prefix>` is relative to `DTK_OFFSITE_REMOTE`. The command lists it, hashes each image of a volume with a stem that has no key yet, and records a listed object as the image's key when exactly one object carries the same SHA1. Ambiguous matches and keys already held are reported, not recorded. It only matches files still on the card.
+`<prefix>` is relative to `CAPTUA_OFFSITE_REMOTE`. The command lists it, hashes each image of a volume with a stem that has no key yet, and records a listed object as the image's key when exactly one object carries the same SHA1. Ambiguous matches and keys already held are reported, not recorded. It only matches files still on the card.
 
 The command does not check the tenant, but give it a prefix under the tenant (`<tenant>/...`). A free lists each key's directory and lists nothing outside the tenant prefix, so a volume with a key adopted outside it can never be freed.
 
@@ -546,7 +547,7 @@ It records the sha256 of each RAW preview captured before previews were listed i
 sudo systemctl restart dtk
 ```
 
-The backend now reads the tenant and starts both schedules. The backend runs each one first `DTK_OFFSITE_BACKUP_DELAY` seconds after the start (300 by default), and again `DTK_OFFSITE_BACKUP_INTERVAL` seconds after each run ends (1800 by default).
+The backend now reads the tenant and starts both schedules; from the release after 0.2.0 they send nothing until the mode allows it (6.2a). The backend runs each one first `CAPTUA_OFFSITE_BACKUP_DELAY` seconds after the start (300 by default), and again `CAPTUA_OFFSITE_BACKUP_INTERVAL` seconds after each run ends (1800 by default).
 
 ### 6.2 Remove the hold {#remove-the-hold}
 
@@ -558,10 +559,22 @@ sudo rm /var/lib/dtk/offsite-hold
 
 The backend starts uploading at its next scheduled run, with no restart.
 
+### 6.2a Set the unit's mode (from the release after 0.2.0) {#set-the-units-mode}
+
+This step applies from the release after 0.2.0. 0.2.0 has no unit mode.
+
+From that release, a unit runs in one of three modes: "Scanner only", in which nothing leaves the unit; "Offsite copy only", in which the images and the catalogue are copied to the bucket; and "Fisqua", which adds the link to Fisqua. The backend sets the mode once, at the first start of that release, from what is configured at that start: "Fisqua" when the link to Fisqua is configured, "Offsite copy only" when the offsite copy is, and "Scanner only" otherwise. In this guide the update's start (2.2) comes before the offsite copy is provisioned (step 4), so on most units the backend sets "Scanner only", and the unit stays in that mode after the restart in 6.1: the backend uploads nothing and sends nothing to Fisqua. On a unit whose `offsite.env` already records a remote and a tenant (2.5), that start sets "Offsite copy only", or "Fisqua" when the link to Fisqua is configured; the hold (4.0) is then the only thing that stops uploads. The backend also sets "Scanner only" on a new unit, or a card, started before its offsite copy was provisioned.
+
+After 6.2, open **Settings** with an administrator account and, under **Unit mode**, choose "Offsite copy only" or "Fisqua". Captua refuses the switch, and names each missing item, while the offsite copy or the catalogue's offsite copy (with its age recipient) is not configured. For "Fisqua", Captua also refuses it while the link to Fisqua is not configured, while the offsite hold exists, and when Fisqua cannot be reached or does not accept the switch: Captua tells Fisqua of the switch before it makes it.
+
+Captua keeps on the unit every volume created in "Scanner only" mode: it copies none of their images offsite and sends none of their manifests to Fisqua. When you switch the unit from "Scanner only" to another mode while it keeps such volumes, choose, under **Volumes Captua keeps on this unit**, **Include them** or **Keep them here**. Captua does not change the mode until you choose.
+
+Once the mode is set, the check in 6.3 also requires `mode_allows` and `images.mode_allows` to be `true`, and, on a unit with the link to Fisqua, `fisqua.mode_allows`.
+
 ### 6.3 Check {#check}
 
 - **Each volume's received indicator.** On the volume's page, the offsite line is `Uploading: N of M files verified, P pending` while the upload is under way, and `Stored offsite: N of N files verified` once every object is verified. `N files need attention` means objects were refused: the bucket holds a different file at the key (`remote_differs`), or the file's sha256 is not the one its capture record holds (`fixity`). A refused object is not retried. `GET /collections/{id}/offsite` returns the same counts.
-- **The unit's offsite state.** The Configuration page's **Offsite copy** section and the indicator in the dashboard read `GET /system/catalogue-backup`. From the unit:
+- **The unit's offsite state.** The **Settings** page's **Offsite copy** section and the indicator in the dashboard read `GET /system/catalogue-backup`. From the unit:
 
   ```bash
   read -rs -p "Password: " PW; echo
@@ -574,7 +587,7 @@ The backend starts uploading at its next scheduled run, with no restart.
 
   `read -rs` keeps the password off the screen and out of the shell history, and the request body goes through a pipe, so the password is never on a command line.
 
-  `held` is `false`; `enabled` and `images.enabled` are `true`; `images.misconfigured` is `null`; `last_verified_at` fills in once the first dump is verified. A missing or invalid dump recipient is not shown here: `enabled` stays `true` and `last_verified_at` does not advance, and each run writes `catalogue_backup_failed` to the system log.
+  `held` is `false`; `enabled` and `images.enabled` are `true`; from the release after 0.2.0, `mode_allows` and `images.mode_allows` are `true` as well (6.2a); `images.misconfigured` is `null`; `last_verified_at` fills in once the first dump is verified. A missing or invalid dump recipient is not shown here: `enabled` stays `true` and `last_verified_at` does not advance, and each run writes `catalogue_backup_failed` to the system log.
 
 ### 6.4 Free one volume first {#free-one-volume-first}
 
@@ -594,7 +607,7 @@ Before it removes any file, the backend recomputes the SHA1 of every file, then 
 
 Reinstalling the previous pixi environment needs the conda registry when `pixi.lock` changed in the update, unless every package is still in pixi's cache. The script says so when it cannot.
 
-After a restore, the local branch names the previous commit and the submodules are on its pins. For the 0.1.0 install, that is `main` pointing at the commit the unit ran before. Before trying again, point it back at `origin/main` and put the submodules on its pins, since `update.sh --no-pull` does not sync them:
+After a restore, the local branch names the previous commit and the submodules are on its pins. For the 0.1.0-beta install, that is `main` pointing at the commit the unit ran before. Before trying again, point it back at `origin/main` and put the submodules on its pins, since `update.sh --no-pull` does not sync them:
 
 ```bash
 git -C /home/pi/dtk checkout -B main origin/main
@@ -604,9 +617,9 @@ git -C /home/pi/dtk submodule status
 
 Every line of `submodule status` must begin with a space. Then check the tree as in 2.1 before running 2.2 again.
 
-### 7.2 A failed 0.1.0 install {#a-failed-0.1.0-install}
+### 7.2 A failed 0.1.0-beta install {#a-failed-0.1.0-install}
 
-`update.sh` can leave an unresolved record (7.3) with the previous code already back on disk: when it could not restore the database, refused to, or moved the code back only part-way. If the `update.sh` on disk then predates the record, as the pre-0.1.0 one does, it would not refuse to run. In that case, and only then, the script prints `DO NOT RUN scripts/update.sh ON THIS UNIT UNTIL THE ROLLBACK HAS SUCCEEDED`. Run only the recorded rollback command, under `systemd-run` as in 7.3.
+`update.sh` can leave an unresolved record (7.3) with the previous code already back on disk: when it could not restore the database, refused to, or moved the code back only part-way. If the `update.sh` on disk then predates the record, as the pre-0.1.0-beta one does, it would not refuse to run. In that case, and only then, the script prints `DO NOT RUN scripts/update.sh ON THIS UNIT UNTIL THE ROLLBACK HAS SUCCEEDED`. Run only the recorded rollback command, under `systemd-run` as in 7.3.
 
 ### 7.3 The unresolved record {#the-unresolved-record}
 
@@ -622,7 +635,7 @@ sudo cat /var/lib/dtk/backups/unresolved-deployment
 
 | `kind` | What happened | What to do |
 |---|---|---|
-| `started-failed` | `update.sh` started the new version and then failed. The code is the new version's and the database is migrated for it. | Either run the recorded rollback command, which returns code and database to the previous version and discards everything written since the dump, or, once the cause is fixed, `update.sh --resolve-forward` (7.4). On the first 0.1.0 install, once files have moved into `<stem>/captures/`, the stem guard refuses the rollback (8.0a); use `--resolve-forward`. |
+| `started-failed` | `update.sh` started the new version and then failed. The code is the new version's and the database is migrated for it. | Either run the recorded rollback command, which returns code and database to the previous version and discards everything written since the dump, or, once the cause is fixed, `update.sh --resolve-forward` (7.4). On the first 0.1.0-beta install, once files have moved into `<stem>/captures/`, the stem guard refuses the rollback (8.0a); use `--resolve-forward`. |
 | `migrated-not-restored` | `update.sh` failed after the migration began, and the code was not moved back, or only part-way. The database may be migrated or partly migrated. | The recorded rollback command, once whatever stopped the code from moving is cleared; or `--resolve-forward` if the code is exactly the failed commit and the database is at its head. |
 | `restore-failed` | The database was dropped for a restore, and loading the dump failed or was cut off. The database may be empty or partly restored. Also written by a rollback cut off after its drop. | Only the recorded rollback command. `--resolve-forward` refuses this kind. |
 | `restore-refused` | `update.sh` failed after the migration, and refused the restore before anything was dropped (a backend was running, or the start guard could not be put in place). The code is back on the previous commit; the database is as the migration left it. | Only the recorded rollback command. `--resolve-forward` refuses this kind. |
@@ -695,7 +708,7 @@ At the first start after a rollback, `start.sh` runs `pixi run start`, which may
 Before the script changes anything, it checks whether the restored catalogue would point at files that are not there:
 
 - It reads every image path in the backup and looks for the file on disk, resolving a relative path as the backend does, against `/home/pi/dtk/backend`. A master freed to offsite storage is not counted. A volume with any image missing is at risk.
-- It asks the current database for volumes with a stem, and counts only those whose stem directory exists. It looks under the projects root named in `/var/lib/dtk/storage-override.json` and under the default root (`PROJECTS_ROOT`, or `<DTK_DATA_DIR>/projects`); a relative root is resolved under `/home/pi/dtk/backend`, as the backend resolves it. A volume with a stem directory that the backup does not have is at risk: it would be gone from the catalogue, its files left in the directory.
+- It asks the current database for volumes with a stem, and counts only those whose stem directory exists. It looks under the projects root named in `/var/lib/dtk/storage-override.json` and under the default root (`PROJECTS_ROOT`, or `<CAPTUA_DATA_DIR>/projects`); a relative root is resolved under `/home/pi/dtk/backend`, as the backend resolves it. A volume with a stem directory that the backup does not have is at risk: it would be gone from the catalogue, its files left in the directory.
 - If the backup's image or record rows cannot be read, every volume with a stem directory is listed, and the message says some of them may be safe.
 
 If any volume is at risk, the script refuses with nothing changed and writes the list to `/var/lib/dtk/backups/rollback-stems-at-risk`, root's and mode 0600. The file begins with `#` header lines (the dump, whether the loss was accepted, how the dump was checked), then a tab-separated table with the columns `id`, `name`, `filename_stem`, `images_missing`, `images_total`, and `example`. The message begins:
@@ -715,9 +728,9 @@ With `--accept-lost-stems`, the script goes on, records `accepted: yes` in the l
 
 The script starts the database container itself if it is not running. It refuses when that fails or a query fails: `✗ Could not check the current database for volumes with a stem directory`. Make the database reachable and run it again: start `dtk`, or, if the unresolved flag keeps `dtk` from starting, start the database container alone (`sudo docker compose -f /home/pi/dtk/docker-compose.yml -f /home/pi/dtk/docker-compose.pi.yml up -d db`). Three states are not refusals: a database that does not exist, which an interrupted restore leaves, holds no volume; a database with no volumes table holds none either; and a schema from before stems has no stem directories. In each, the backup's own images are still checked.
 
-**The first 0.1.0 install.** Once 0.1.0 has started and moved files into `<stem>/captures/` (3.3, and for volumes that already had a stem, the start at the end of `update.sh`), the pre-update backup names those files at their old paths. A rollback to it would cut those volumes off, so the guard refuses it. After a failed update with an unresolved record of kind `started-failed`, use `update.sh --resolve-forward` (7.4), not a rollback. A record of kind `migrated-not-restored` means the new version never started, so no file moved for it. After a successful update, install a fixed version with an ordinary update.
+**The first 0.1.0-beta install.** Once 0.1.0-beta has started and moved files into `<stem>/captures/` (3.3, and for volumes that already had a stem, the start at the end of `update.sh`), the pre-update backup names those files at their old paths. A rollback to it would cut those volumes off, so the guard refuses it. After a failed update with an unresolved record of kind `started-failed`, use `update.sh --resolve-forward` (7.4), not a rollback. A record of kind `migrated-not-restored` means the new version never started, so no file moved for it. After a successful update, install a fixed version with an ordinary update.
 
-No command recovers a volume after an accepted loss yet. A `restore-stem` command is planned after 0.1.0.
+No command recovers a volume after an accepted loss yet. A `restore-stem` command is planned after 0.1.0-beta.
 
 ### 8.1 What it restores {#what-it-restores}
 
@@ -750,7 +763,7 @@ Do not roll back after the restart in 3.3. From then on the files of each volume
 
 ### 8.4 The next update {#the-next-update}
 
-The rollback writes the restored commit to `last-deployed-SHA` and moves the local branch to it. The `update.sh` on disk is then the restored version's, not the 0.1.0 one, so the next update repeats the 0.1.0 install:
+The rollback writes the restored commit to `last-deployed-SHA` and moves the local branch to it. The `update.sh` on disk is then the restored version's, not the 0.1.0-beta one, so the next update repeats the 0.1.0-beta install:
 
 1. 2.1: bring `main` back to `origin/main` (`git -C /home/pi/dtk checkout -B main origin/main`), sync the submodules, and check the tree.
 2. If `offsite.env` was moved aside (8.1), create the hold and put `offsite.env` back:
@@ -764,10 +777,10 @@ The rollback writes the restored commit to `last-deployed-SHA` and moves the loc
 3. 2.2, with `--no-pull`.
 4. Steps 3 to 6 again: the rollback discarded everything written after the dump (8.2).
 
-When the unit is updated to 0.1.0 again, the backend moves files at its start:
+When the unit is updated to 0.1.0-beta again, the backend moves files at its start:
 
 - For a volume whose stem is in the restored database, a row whose old path is gone is pointed at the file of the same name in `<stem>/captures/` when the file's sha256 matches the capture-time checksum. A file with no such checksum is reported as `missing`.
-- The stem guard (8.0a) refuses a rollback that would cut a volume off from its files. After a rollback accepted with `--accept-lost-stems`, giving a lost stem again is refused while `<stem>/` holds files that none of the volume's rows name. No command recovers a volume after an accepted loss yet; `restore-stem` is planned after 0.1.0.
+- The stem guard (8.0a) refuses a rollback that would cut a volume off from its files. After a rollback accepted with `--accept-lost-stems`, giving a lost stem again is refused while `<stem>/` holds files that none of the volume's rows name. No command recovers a volume after an accepted loss yet; `restore-stem` is planned after 0.1.0-beta.
 
 ---
 
@@ -777,17 +790,19 @@ When the unit is updated to 0.1.0 again, the backend moves files at its start:
 
 The backend sends each handed-over volume's capture manifest to Fisqua, and asks Fisqua for the volume's status, when all three are set:
 
-- `DTK_FISQUA_ENV` is `production` or `staging`. Production calls `https://<tenant>.fisqua.org`; staging calls `https://<tenant>.staging.fisqua.org`.
-- `DTK_FISQUA_TOKEN` is 64 lowercase hexadecimal characters.
-- `DTK_OFFSITE_TENANT` holds a valid tenant.
+- `CAPTUA_FISQUA_ENV` is `production` or `staging`. Production calls `https://<tenant>.fisqua.org`; staging calls `https://<tenant>.staging.fisqua.org`.
+- `CAPTUA_FISQUA_TOKEN` is 64 lowercase hexadecimal characters.
+- `CAPTUA_OFFSITE_TENANT` holds a valid tenant.
 
 Otherwise nothing is queued or sent, and at start the journal has `INFO app.core.fisqua_outbox: Fisqua is not configured; no status poll started`.
 
-The backend sends manifests only when `DTK_OFFSITE_REMOTE` is also set: the send pass runs inside the image upload schedule, which the backend starts only with a remote and a valid tenant. With a tenant and no remote, the backend queues manifests and never sends them.
+The backend sends manifests only when `CAPTUA_OFFSITE_REMOTE` is also set: the send pass runs inside the image upload schedule, which the backend starts only with a remote and a valid tenant. With a tenant and no remote, the backend queues manifests and never sends them.
+
+From the release after 0.2.0, the link works only while the unit is in "Fisqua" mode (6.2a); in any other mode the backend sends nothing to Fisqua and does not poll it.
 
 The backend reads these settings at start. During an update, set them before step 6, and the restart in 6.1 applies them; outside an update, apply a change with `sudo systemctl restart dtk`. Every call goes over HTTPS with the unit's token. The backend never logs, stores, or returns the token; on the unit it is in `offsite.env`, and in the key file until you remove it.
 
-The release number is in the file `VERSION` at the root of the checkout (`0.1.0`). The backend sends it in each manifest as `systemVersion`: `0.1.0` when the checkout is on the commit tagged `0.1.0`, otherwise `0.1.0+g<first 12 characters of the backend commit>`. The backend reads the tag from the superproject's git files without running git: a tag it can find only inside a pack file, or in `packed-refs` without the fully-peeled line, counts as no tag, and the version is `+g…` even on the tagged commit (verify on the bench once the tag exists).
+The release number is in the file `VERSION` at the root of the checkout (`0.2.0` in the current release). The backend sends it in each manifest as `systemVersion`: `<release>` when the checkout is on the commit tagged `<release>`, otherwise `<release>+g<first 12 characters of the backend commit>`. The backend reads the tag from the superproject's git files without running git: a tag it can find only inside a pack file, or in `packed-refs` without the fully-peeled line, counts as no tag, and the version is `+g…` even on the tagged commit (verify on a test unit).
 
 ### 9.2 Provisioning {#provisioning}
 
@@ -798,10 +813,10 @@ FISQUA_TOKEN=<64 lowercase hexadecimal characters>
 ```
 
 ```bash
-sudo DTK_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
+sudo CAPTUA_OFFSITE_KEY_FILE=/root/dtk-offsite-key \
     /home/pi/dtk/scripts/provision-rclone.sh \
     --tenant <tenant> \
-    --dump-recipient age172wkzadqepd565chppztfw8jefpcga8s7t6eqrfhnxnv2nlfkdrqygrl3m \
+    --dump-recipient <age-recipient> \
     --fisqua-env production
 ```
 
@@ -829,13 +844,13 @@ When an operator sends a volume for review, the backend queues a capture manifes
 
 1. The backend holds a queued manifest until the volume is received: every object of the volume verified in the bucket.
 2. The backend then builds the manifest, under a fixed manifest id, and sends it in the same pass.
-3. From Fisqua's answer, the backend marks the manifest delivered or refused. After a transient failure the manifest becomes due again after `DTK_FISQUA_RETRY_BASE` seconds (300), twice as long after each further failure, at most `DTK_FISQUA_RETRY_MAX` (6 hours), and never before the time Fisqua's `Retry-After` gives. The backend sends it at the first send pass after that. The backend runs a send pass after each image upload run, and runs those every `DTK_OFFSITE_BACKUP_INTERVAL` (30 minutes by default), or at once when a handover wakes the schedule. The backend does not stop retrying.
+3. From Fisqua's answer, the backend marks the manifest delivered or refused. After a transient failure the manifest becomes due again after `CAPTUA_FISQUA_RETRY_BASE` seconds (300), twice as long after each further failure, at most `CAPTUA_FISQUA_RETRY_MAX` (6 hours), and never before the time Fisqua's `Retry-After` gives. The backend sends it at the first send pass after that. The backend runs a send pass after each image upload run, and runs those every `CAPTUA_OFFSITE_BACKUP_INTERVAL` (30 minutes by default), or at once when a handover wakes the schedule. The backend does not stop retrying.
 
 A volume whose recorded reference code is not its stem is refused at once, not sent, with the problem `reference_code_differs`. A volume the manifest builder refuses is refused with the builder's problems. Taking a volume back from review withdraws its unsent manifests; nothing is sent to Fisqua. A new handover replaces the volume's unsent manifests. While the hold exists (4.0), no manifest is built or sent.
 
-On the bench unit on 2026-10-25, volume `cobos-bench-005`, with the default cap of `750k` (4.5): the backend started the upload 2 seconds after the handover, verified its 12 objects in 5 minutes 43 seconds, and sent the manifest 0.08 seconds after the last verification. After a take-back and a new handover, Fisqua registered the new manifest within 3 seconds.
+In one test, on a test unit with the default cap of `750k` (4.5), the backend started the upload 2 seconds after the handover, verified its 12 objects in 5 minutes 43 seconds, and sent the manifest 0.08 seconds after the last verification. After a take-back and a new handover, Fisqua registered the new manifest within 3 seconds.
 
-The backend first asks Fisqua for the status of its volumes `DTK_OFFSITE_BACKUP_DELAY` seconds (300) after start, and then every ten minutes (`DTK_FISQUA_POLL_INTERVAL`, 600). It asks about a volume while Fisqua has not given a final state for the volume's newest sent manifest, and while Fisqua offers a decisions set for the volume that the backend has not yet read (9.5). The final states are `published`, `refused`, and `superseded`.
+The backend first asks Fisqua for the status of its volumes `CAPTUA_OFFSITE_BACKUP_DELAY` seconds (300) after start, and then every ten minutes (`CAPTUA_FISQUA_POLL_INTERVAL`, 600). It asks about a volume while Fisqua has not given a final state for the volume's newest sent manifest, and while Fisqua offers a decisions set for the volume that the backend has not yet read (9.5). The final states are `published`, `refused`, and `superseded`.
 
 ### 9.4 The volume page {#the-volume-page}
 
@@ -858,22 +873,22 @@ Once Fisqua answers, the line shows its status, from `Fisqua received the volume
 **Configuration stops.** The backend stops sending and polling for the whole unit when Fisqua answers `401` or `403` (reason `token`), `404` (`not_found`) or any redirect (`redirect`). A `404` with rule `no-decisions` on a decisions read is not a stop (9.5). The backend also stops on a `400` whose problems say Fisqua cannot read the manifests this software writes (rules `version`, `envelope`, or `shape`, reason `version`); that manifest is refused for good. The journal has:
 
 ```text
-ERROR app.core.fisqua_outbox: Fisqua answered HTTP <status> (<reason>) for this unit's configuration (fingerprint <8 hex>); sending and polling stop until DTK_FISQUA_ENV, DTK_FISQUA_BASE_URL or DTK_FISQUA_TOKEN is changed
+ERROR app.core.fisqua_outbox: Fisqua answered HTTP <status> (<reason>) for this unit's configuration (fingerprint <8 hex>); sending and polling stop until CAPTUA_FISQUA_ENV, CAPTUA_FISQUA_BASE_URL or CAPTUA_FISQUA_TOKEN is changed
 ```
 
-For reason `version` the backend writes this line instead; `<seconds>` is `DTK_FISQUA_RETRY_MAX` (21600 by default):
+For reason `version` the backend writes this line instead; `<seconds>` is `CAPTUA_FISQUA_RETRY_MAX` (21600 by default):
 
 ```text
 ERROR app.core.fisqua_outbox: Fisqua answered HTTP 400 (version) for this unit's manifests (fingerprint <8 hex>); sending and polling stop until the software is updated, or until a retest every <seconds> s finds that Fisqua reads its manifests
 ```
 
-The volume page and the Configuration page say why. For a token stop they read `Fisqua does not accept the token configured on this scanner, so Captua has stopped sending volumes to Fisqua and checking their status. Ask whoever manages the scanner to correct DTK_FISQUA_TOKEN and restart Captua.` For reason `version` they read `Fisqua does not read the capture manifests this version of Captua writes, so Captua has stopped sending volumes to Fisqua and checking their status. Ask whoever manages the scanner to update Captua or Fisqua.`
+The volume page and the **Settings** page say why. For a token stop they read `Fisqua does not accept the token configured on this scanner, so Captua has stopped sending volumes to Fisqua and checking their status. Ask whoever manages the scanner to correct CAPTUA_FISQUA_TOKEN and restart Captua.` For reason `version` they read `Fisqua does not read the capture manifests this version of Captua writes, so Captua has stopped sending volumes to Fisqua and checking their status. Ask whoever manages the scanner to update Captua or Fisqua.`
 
-The stop is kept in `/var/lib/dtk/fisqua-config-error.json` and survives restarts. The backend clears the stop when the environment, the tenant (through the base URL built from it, unless `DTK_FISQUA_BASE_URL` is set), `DTK_FISQUA_BASE_URL`, the token, or the installed code changes; the journal then has `INFO app.core.fisqua_outbox: The Fisqua configuration was changed since Fisqua refused it; sending resumes`. The backend reads `offsite.env` at start: during an update, the restart in 6.1 applies a change to it; outside an update, apply it with `sudo systemctl restart dtk`. An update that changes the backend commit or the release also clears a token stop; if the token is still wrong, the backend's next call stops the unit again. The backend also removes a version stop after a retest that Fisqua reads (below).
+The stop is kept in `/var/lib/dtk/fisqua-config-error.json` and survives restarts. The backend clears the stop when the environment, the tenant (through the base URL built from it, unless `CAPTUA_FISQUA_BASE_URL` is set), `CAPTUA_FISQUA_BASE_URL`, the token, or the installed code changes; the journal then has `INFO app.core.fisqua_outbox: The Fisqua configuration was changed since Fisqua refused it; sending resumes`. The backend reads `offsite.env` at start: during an update, the restart in 6.1 applies a change to it; outside an update, apply it with `sudo systemctl restart dtk`. An update that changes the backend commit or the release also clears a token stop; if the token is still wrong, the backend's next call stops the unit again. The backend also removes a version stop after a retest that Fisqua reads (below).
 
 **The version stop.** While it holds, the backend builds no manifest except the one a retest sends (below). Manifests already built but never sent when the refusal came are put back to be built again under new ids, so their line reads `Waiting for the complete offsite copy before sending to Fisqua`. The installed code, for this stop, is the backend commit and the release in `VERSION`: an update that changes either clears it, and an update that changes neither does not. When it cannot read its commit, the backend removes the stop at every restart. A change of environment, tenant, base URL, or token clears it too, and so does a retest that Fisqua reads (below). Once the stop is removed, the backend hands each volume whose newest manifest was refused for version over again under a new manifest id, as long as none of its records is captured, and logs `INFO app.core.fisqua_outbox: Volume <id> handed to Fisqua again under a new manifest id after a version refusal`.
 
-**The retest.** While a version stop holds, the backend sends one manifest every `DTK_FISQUA_RETRY_MAX` seconds (21600, six hours), counted from the time it recorded the stop or from the last retest, whichever is later. The backend sends the first retest six hours after it records the stop. The backend sends the retest at the first send pass after that time, and runs a send pass after each image upload run (9.3). A retest needs a volume handed over and received offsite: the backend takes, oldest first, a manifest waiting to be built or built and never sent, or a volume whose newest manifest was refused for version and none of whose records is captured, which it hands over again under a new manifest id. With no such volume, or no call left in the per-minute budget, the backend sends nothing and tries again at the next send pass. What the backend does next depends on Fisqua's answer:
+**The retest.** While a version stop holds, the backend sends one manifest every `CAPTUA_FISQUA_RETRY_MAX` seconds (21600, six hours), counted from the time it recorded the stop or from the last retest, whichever is later. The backend sends the first retest six hours after it records the stop. The backend sends the retest at the first send pass after that time, and runs a send pass after each image upload run (9.3). A retest needs a volume handed over and received offsite: the backend takes, oldest first, a manifest waiting to be built or built and never sent, or a volume whose newest manifest was refused for version and none of whose records is captured, which it hands over again under a new manifest id. With no such volume, or no call left in the per-minute budget, the backend sends nothing and tries again at the next send pass. What the backend does next depends on Fisqua's answer:
 
 - Fisqua accepts the manifest, or refuses it for its content rather than its version: the backend removes the stop. In the same pass it hands over again each volume whose newest manifest was refused for version, then builds and sends what is due, within the per-pass limit.
 - Fisqua refuses it again for version: the backend records the stop again with the time of this refusal, so the next retest is one interval later.
@@ -882,7 +897,7 @@ The stop is kept in `/var/lib/dtk/fisqua-config-error.json` and survives restart
 
 When Fisqua is changed to read the manifests this software writes, the backend resumes sending within six hours plus the time to the next send pass, with nothing done on the unit, provided some volume is handed over and received offsite and none of its records is captured. Otherwise the stop holds until such a volume exists, or until an update or a configuration change removes it. The backend retests nothing while the offsite upload hold (4.0) exists. Removing `/var/lib/dtk/fisqua-config-error.json` by hand is not needed. When an update or a configuration change removes the stop instead, the backend builds again, under the new code and new manifest ids, the manifests the retests built and never sent, and the last retest's manifest when its answer was lost or its send failed.
 
-The Configuration page's **Offsite copy** card has a **Fisqua** section with the environment, the last send, and the last status check. `GET /system/catalogue-backup` returns the same under `fisqua`: `configured`, `token_invalid`, `environment`, `config_error`, `held`, `last_send`, and `last_poll`.
+The **Settings** page's **Offsite copy** card has a **Fisqua** section with the environment, the last send, and the last status check. `GET /system/catalogue-backup` returns the same under `fisqua`: `configured`, `token_invalid`, `environment`, `config_error`, `held`, `last_send`, and `last_poll`.
 
 ### 9.5 Fisqua's decisions {#fisquas-decisions}
 
@@ -890,9 +905,17 @@ When Fisqua has decided a volume's records, the status poll reads the decisions 
 
 - An approved record becomes `approved`; a rejected record becomes `rejected`, with Fisqua's reason and note. The reviewer recorded for either is `Fisqua: <decidedBy>`, or `Fisqua` when Fisqua names no one. Fisqua's decision replaces a local one.
 - Fisqua's set replaces the rotation correction of each current image of a record it is applied to: an image the set gives no correction loses any local one. No file is touched.
-- Skipped and reported, with nothing changed for that record: a record not in the volume, a record that is `captured` (the volume was taken back, or the record retaken), a record whose current images are not the ones the decided manifest listed (`images_changed`), a decision that is neither approved nor rejected, and a rejection the local reject route would refuse (`note_too_long`, a reason not in the list, `other` with no note).
+- Skipped and reported, with nothing changed for that record: a record not in the volume, a record that is `captured` (the volume was taken back, or the record retaken), a record whose current images are not the ones the decided manifest listed (`images_changed`), a decision that is neither approved nor rejected (`invalid_decision`), and a rejection the local reject route would refuse (`note_too_long`, a reason not in the list, `other` with no note).
 - A set for an earlier manifest is not applied. A set waits while a newer handover of the volume is not yet delivered.
 - When Fisqua's status offers a set and Fisqua answers the read with `404` and rule `no-decisions`, the backend applies nothing, writes `INFO app.core.fisqua_outbox: Fisqua has no decisions to give for volume <id> yet; read again at the next poll`, and reads the set again at the next poll. The link is not stopped. Any other `404` is a configuration stop (9.4).
+
+From the release after 0.2.0, the backend also applies these decisions:
+
+- An excluded record, one Fisqua says is not a page of the volume, becomes `excluded`, with the same reviewer; no rejection is written and no image changes. An exclusion with a reason or with rotations is skipped.
+- A decision `missing_page`, with `side` `left` or `right`, marks a record captured with two cameras as missing that page; the current image of that side, if any, is superseded. A record in review or approved returns to captured, and the backend reopens a closed record. A record captured with one camera is skipped (`missing_page_single_record`).
+- A set can also carry requests of kind `missing_opening`: for each, the backend adds placeholder records after the record the request names (one, or the request's `count`, from 1 to 50). A request already applied is skipped.
+- When applying the set marked a page missing or added a placeholder, and the volume was handed over before and holds no captured record other than those still missing a page, and no record waiting for a retake, the backend hands the volume over again.
+- Rotation corrections apply only to approved and rejected records, and `invalid_decision` covers a decision that is not approved, rejected, excluded or missing_page.
 
 ### 9.6 The journal lines {#the-journal-lines}
 
@@ -907,7 +930,13 @@ INFO app.core.fisqua_decisions: Fisqua decisions <id> applied to volume <id>: ap
 INFO app.core.fisqua_outbox: Fisqua has no decisions to give for volume <id> yet; read again at the next poll
 ```
 
-During a version stop (9.4), the backend writes a line when it sends each retest, and one for its outcome; `<seconds>` is `DTK_FISQUA_RETRY_MAX`:
+From the release after 0.2.0, the decisions line carries more counts:
+
+```text
+INFO app.core.fisqua_decisions: Fisqua decisions <id> applied to volume <id>: approved=<n> rejected=<n> excluded=<n> unchanged=<n> skipped=<n> rotations=<n> rotations_skipped=<n> missing_pages=<n> placeholders=<n> requests_skipped=<n> reopened=<n>
+```
+
+During a version stop (9.4), the backend writes a line when it sends each retest, and one for its outcome; `<seconds>` is `CAPTUA_FISQUA_RETRY_MAX`:
 
 ```text
 INFO app.core.fisqua_outbox: Fisqua version stop retest: sending manifest <manifest id> of volume <id>
@@ -933,14 +962,14 @@ Failures have their own lines: `Sending manifest <id> of volume <id> to Fisqua f
 
 ### 9.7 When nothing arrives in Fisqua {#when-nothing-arrives-in-fisqua}
 
-1. `GET /system/catalogue-backup` (6.3): `fisqua.configured` must be `true`. If `token_invalid` is `true`, the token is not 64 lowercase hexadecimal characters. If `configured` is `false` and `token_invalid` is `false`, check that `DTK_FISQUA_TOKEN` is present (the command in 4.3 shows it as `(not shown)`), and check `DTK_FISQUA_ENV` and `DTK_OFFSITE_TENANT`. During an update, set any change before step 6, and the restart in 6.1 applies it; outside an update, restart dtk with `sudo systemctl restart dtk`. If `config_error` is set, see the configuration stops in 9.4. For reason `version`, the backend retests every six hours with nothing done on the unit, provided some volume is handed over and received offsite and none of its records is captured; otherwise the stop holds until such a volume exists, or until an update or a configuration change removes it, and the backend retests nothing while the hold exists. `config_error.at` is the time the backend last recorded the stop, which a retest refused for version renews, and `config_error.retest_at` is the time of the last retest whose send failed (`null` otherwise). Both are UTC, written without an offset. The next retest is due six hours after the later of the two. If `held` is `true` and step 5 is complete, remove the hold (6.2); during an update, leave it.
+1. `GET /system/catalogue-backup` (6.3): `fisqua.configured` must be `true`, and from the release after 0.2.0 `fisqua.mode_allows` as well (6.2a). If `token_invalid` is `true`, the token is not 64 lowercase hexadecimal characters. If `configured` is `false` and `token_invalid` is `false`, check that `offsite.env` holds `DTK_FISQUA_TOKEN` (the command in 4.3 shows it as `(not shown)`), and check `DTK_FISQUA_ENV` and `DTK_OFFSITE_TENANT` there. During an update, set any change before step 6, and the restart in 6.1 applies it; outside an update, restart dtk with `sudo systemctl restart dtk`. If `config_error` is set, see the configuration stops in 9.4. For reason `version`, the backend retests every six hours with nothing done on the unit, provided some volume is handed over and received offsite and none of its records is captured; otherwise the stop holds until such a volume exists, or until an update or a configuration change removes it, and the backend retests nothing while the hold exists. `config_error.at` is the time the backend last recorded the stop, which a retest refused for version renews, and `config_error.retest_at` is the time of the last retest whose send failed (`null` otherwise). Both are UTC, written without an offset. The next retest is due six hours after the later of the two. If `held` is `true` and step 5 is complete, remove the hold (6.2); during an update, leave it.
 2. The volume's line in 9.4. `Waiting for the complete offsite copy…` (the start of the text) means the upload has not verified every object: read the volume's offsite line and the `Image upload run` lines.
 3. The journal: `journalctl -u dtk --since "1 hour ago" | grep -E "Fisqua|Image upload run"`.
 4. The backend asks again every ten minutes about a delivered volume that Fisqua reports as `Fisqua does not know this volume yet`, and resends nothing on its own. To send it again, take the volume back from review and send it for review again: the backend queues a new manifest under a new id and sends it once the volume is received. The backend queues a new manifest only while some of the volume's records are in review; taking the volume back returns only those records to captured, and the backend queues nothing for a handover with no captured record.
 
 ## 10. Checks after an update {#checks-after-an-update}
 
-Run these on the bench unit after every update, and on a unit in service after its update:
+Run these on a test unit after every update, and on a unit in service after its update:
 
 ```bash
 curl -s http://localhost:8000/health
@@ -965,7 +994,7 @@ sudo cat /etc/dtk/hostname-switch
 - The drop-in's `ConditionPathExists=!/etc/dtk/unresolved-deployment` is listed.
 - `check-stack-health.sh` reports the database healthy and port 5432 listening on the host, on any address, the frontend running, and nginx running.
 - The journal has no `Cannot start` and no `Traceback`; any `Volume layout:` lines are read as in 3.4. `offsite uploads are on hold` appears at each run while the hold exists.
-- `GET /system/catalogue-backup` (6.3) reports `held` as expected for the point of the procedure, and, on a unit with the link, `fisqua.configured` `true` with no `config_error`.
+- `GET /system/catalogue-backup` (6.3) reports `held` as expected for the point of the procedure, and, on a unit with the link, `fisqua.configured` `true` with no `config_error`. From the release after 0.2.0, `mode_allows`, `images.mode_allows` and, on a unit with the link, `fisqua.mode_allows` are `true` once the mode is set (6.2a).
 - The journal, on a unit with the link, has no `Fisqua answered HTTP` line since the restart. The `Fisqua accepted manifest` line (9.6) appears only after a handed-over volume is received offsite; a `Fisqua outbox pass` line can also report a volume refused as not exportable. Neither appears while the hold exists.
 - On a volume handed over since the update, the Fisqua line under the offsite copy line reads `Sent to Fisqua; waiting for its status` or a status from Fisqua (9.4).
 - On a unit renamed from `digitool`: `hostname` prints `captua`; `getent` prints an address for both names; `HOST_IP=captua.local` and `CORS_ORIGINS` lists `http://captua.local` and `http://digitool.local`; `dtk-mdns-alias` is `enabled` and `active`; `/etc/dtk/hostname-switch` reads `state=done`. From another machine on the same network, `http://captua.local`, `http://digitool.local`, and the unit's IP each load the app and log in. On a unit that kept its name, the update's journal says why (2.6).
@@ -974,8 +1003,8 @@ sudo cat /etc/dtk/hostname-switch
 
 ## A new unit {#a-new-unit}
 
-1. Provision the card with `sudo ./scripts/setup.sh`, which names it `captua` (`sudo DTK_HOSTNAME=captua-2 ./scripts/setup.sh` for a second unit at a site), then `sudo ./scripts/install-service.sh`, which also installs the unresolved-update drop-in (see [SD Card Distribution](/docs/deployment/sd-card-distribution/)).
+1. Provision the card with `sudo ./scripts/setup.sh`, which names it `captua` (`sudo CAPTUA_HOSTNAME=captua-2 ./scripts/setup.sh` for a second unit at a site), then `sudo ./scripts/install-service.sh`, which also installs the unresolved-update drop-in (see [SD Card Distribution](/docs/deployment/sd-card-distribution/)).
 2. Write the key file and run `provision-rclone.sh` with `--tenant` and `--dump-recipient`, as in step 4. For a unit with the link to Fisqua, add `--fisqua-env` and a `FISQUA_TOKEN` line in the key file (9.2).
-3. Start or restart `dtk` and check as in 6.3.
+3. Start or restart `dtk` and check as in 6.3. From the release after 0.2.0, set the unit's mode first (6.2a) if the unit was started before step 2.
 
 A new volume must be given its stem when it is created, so step 3 does not apply, and with nothing in the bucket before the unit, step 5 does not apply either.

@@ -9,7 +9,7 @@ source: "docs/users/setting-up-gphoto2-cams.qmd"
 {{< callout type="note" title="Lista de cámaras compatibles con gphoto2" appearance="simple" collapse="true" >}}
 Consulta la lista completa de cámaras compatibles con gphoto2 en la [página oficial de compatibilidad](http://gphoto.org/proj/libgphoto2/support.php).
 
-Para funcionar plenamente con Digitization Toolkit, las cámaras deben ofrecer todas estas funciones: captura de imágenes (Image Capture), disparo remoto (Trigger Capture), vista en vivo (Live View) y configuración (Configuration).
+Para funcionar plenamente con Captua, las cámaras deben ofrecer todas estas funciones: captura de imágenes (Image Capture), disparo remoto (Trigger Capture), vista en vivo (Live View) y configuración (Configuration).
 {{< /callout >}}
 
 ## Conectar las cámaras a la Raspberry Pi {#connect-the-cameras-to-the-raspberry-pi}
@@ -40,6 +40,20 @@ gphoto2 --auto-detect  # Deben aparecer ambas cámaras
 
 Si falta una cámara, vuelve a conectar ambos extremos del cable, apaga la cámara y vuelve a encenderla. Revisa `dmesg | tail`: un `error -71` repetido indica un cable defectuoso o un conector mal ajustado; si una cámara encendida no produce ninguna señal, el cable podría servir solo para cargar.
 
+## Seleccionar el backend gPhoto2 {#select-the-gphoto2-backend}
+
+La configuración predeterminada del backend es `CAMERA_BACKEND=picamera2`, que solo busca los sensores conectados a la Pi por cable plano, y la instalación del equipo no cambia esa elección. Con esa configuración, la interfaz no muestra ninguna cámara réflex aunque `gphoto2 --auto-detect` detecte las dos. Comprueba que el archivo `.env` del equipo, en la raíz del proyecto, incluya:
+
+```
+CAMERA_BACKEND=gphoto2
+```
+
+Luego reinicia el servicio del backend para aplicar el cambio:
+
+```bash
+sudo systemctl restart dtk
+```
+
 ## Canon EOS Rebel T7 {#canon-eos-rebel-t7}
 
 - Selecciona el enfoque manual: pon el interruptor del lente en **MF** (Manual Focus).
@@ -59,7 +73,7 @@ Si falta una cámara, vuelve a conectar ambos extremos del cable, apaga la cáma
 {{< media id="cannon-eos-rebelt7-config-menu" >}}
 
 {{< callout type="caution" appearance="simple" >}}
-El software abre una sesión con la cámara al solicitar la primera vista previa, captura o lectura de configuración después de encenderla. En ese momento intenta desactivar **Auto power off** para impedir que la cámara entre en reposo durante la sesión; el software nunca apaga la cámara. Antes de abrir esa sesión, la cámara aplica su propia configuración: si estuvo inactiva antes de la primera vista previa del día, podría haber abandonado ya el bus USB. Si la Raspberry Pi falla o la apagas durante una sesión, la cámara puede seguir encendida hasta que la apagues manualmente.
+El software abre una sesión con la cámara al solicitar la primera vista previa, captura o lectura de configuración después de encenderla. En ese momento intenta desactivar **Auto power off** para impedir que la cámara entre en reposo durante la sesión; el software nunca apaga la cámara. Antes de abrir esa sesión, la cámara aplica su propia configuración: si estuvo inactiva antes de la primera vista previa del día, podría haber abandonado ya el bus USB. El software no restablece **Auto power off** al cerrar la sesión. Por eso, cada vez que se detiene el servicio o la Raspberry Pi, y no solo después de una falla, la cámara puede seguir encendida hasta que la apagues manualmente. Si el menú de la cámara muestra luego **Auto power off** desactivado, vuelve a seleccionar **15 minutos**.
 {{< /callout >}}
 
 {{< callout type="important" appearance="simple" >}}

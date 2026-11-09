@@ -189,7 +189,9 @@ for f in (ROOT / 'content').rglob('*.md'):
     m = SECRET.search(f.read_text())
     check(not m, f'Possible credential in {f.relative_to(ROOT)}: {m.group(0) if m else ""}')
 
-pending = json.loads((ROOT / 'data/translations_pending.json').read_text())['pending']
+_translations = json.loads((ROOT / 'data/translations_pending.json').read_text())
+pending = _translations['pending']
+english_only = _translations.get('english_only', [])
 en_keys = {}; es_keys = {}
 for lang, store in (('en', en_keys), ('es', es_keys)):
     for f in (ROOT / 'content' / lang).rglob('*.md'):
@@ -198,11 +200,14 @@ for lang, store in (('en', en_keys), ('es', es_keys)):
             check(key not in store, f'translationKey {key} used twice in content/{lang}')
             store[key] = f.relative_to(ROOT)
 for key, f in en_keys.items():
-    check(key in es_keys or key in pending, f'No Spanish counterpart and not listed as pending: {key} ({f})')
+    check(key in es_keys or key in pending or key in english_only, f'No Spanish counterpart and not listed as pending or English-only: {key} ({f})')
 for key in pending:
     check(key in en_keys, f'Pending translationKey {key} has no English page')
     check(key not in es_keys, f'Pending translationKey {key} already has a Spanish page; remove it from data/translations_pending.json')
 check(len(set(pending)) == len(pending), 'Duplicate entries in data/translations_pending.json')
+for key in english_only:
+    check(key in en_keys, f'English-only translationKey {key} has no English page')
+    check(key not in es_keys, f'English-only translationKey {key} has a Spanish page; remove it from english_only in data/translations_pending.json')
 
 check((PUBLIC / '404.html').exists(), '404 page missing')
 check((PUBLIC / 'pagefind/pagefind.js').exists(), 'Search index missing')
