@@ -1,0 +1,13 @@
+// Serves the built site (public/) as static assets on Cloudflare Workers.
+// The GitHub Actions workflow deploys it from main; see README.md.
+{
+  "name": "captua-docs",
+  "compatibility_date": "2026-11-08",
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "captua.org", "custom_domain": true }
+  ]
+}
