@@ -8,6 +8,7 @@
     "not_found_handling": "404-page"
   },
   "routes": [
-    { "pattern": "captua.org", "custom_domain": true }
+    { "pattern": "captua.org", "custom_domain": true },
+    { "pattern": "www.captua.org", "custom_domain": true }
   ]
 }
