@@ -33,7 +33,7 @@
     "workflow_capture": "Digitize",
     "workflow_catalog": "Catalog and review",
     "workflow_publish": "Publish",
-    "inspiration_credit": "The Digitization Toolkit was inspired by <a href=\"https://github.com/DIYBookScanner/spreads\">Spreads</a> (2013–2016), developed by Johannes Baiter, and by Daniel Reetz and the <a href=\"https://www.diybookscanner.org/\">DIY Book Scanner community</a>. We are grateful for the software, designs, and knowledge they shared, which made possible a decade of <a href=\"https://neogranadina.org/\">Neogranadina’s</a> digitization work in the Global South and eventually led to this project."
+    "inspiration_credit": "The Digitization Toolkit was inspired by <a href=\"https://github.com/DIYBookScanner/spreads\">Spreads</a> (2013–2016), developed by Johannes Baiter, and by the work of Daniel Reetz and the <a href=\"https://www.diybookscanner.org/\">DIY Book Scanner community</a>. We are grateful for the software, designs, and knowledge they shared, which made possible a decade of <a href=\"https://neogranadina.org/\">Neogranadina’s</a> digitization work in the Global South and eventually led to this project."
   },
   "es": {
     "tagline": "Captua permite digitalizar libros y documentos encuadernados con una Raspberry Pi y dos cámaras, una para cada página.",
